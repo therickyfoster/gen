@@ -1,0 +1,416 @@
+/index.html  ← everything lives here (HTML + CSS + JS, offline-ready)
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Regenerative Prompt Forge — 100 Professions × (10 + 5)</title>
+<meta name="description" content="Generate profession-specific prompts with a zero-harm, regenerative default. 100 professions. Offline-first. Accessible. Standalone." />
+<style>
+  :root{
+    --bg: #0c0f12; --surface:#12161b; --surface-2:#171c22; --ink:#e6edf3; --ink-dim:#a9b7c6;
+    --acc:#5ee1a2; --acc-2:#7cc7ff; --danger:#ff6b6b; --muted:#2a323b; --ring:#344150;
+    --radius: 16px; --pad: 14px; --gap: 12px; --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f7fbff; --surface:#ffffff; --surface-2:#f2f7fb; --ink:#0e141b; --ink-dim:#4b5b6b; --muted:#e8eef5; --ring:#cfdbe8; }
+    body{ background: var(--bg) }
+  }
+  * { box-sizing: border-box }
+  html, body { height: 100% }
+  body{
+    margin:0; font: 16px/1.55 var(--font); color:var(--ink); background:linear-gradient(180deg,var(--bg),#0b0e11);
+  }
+  header{
+    position:sticky; top:0; z-index:50; backdrop-filter:saturate(130%) blur(6px);
+    background: color-mix(in oklab, var(--surface) 85%, transparent);
+    border-bottom:1px solid var(--ring);
+  }
+  .wrap{ max-width: 1200px; margin: 0 auto; padding: 12px var(--pad) }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .logo{
+    width:34px; height:34px; border-radius:10px; background: conic-gradient(from 200deg at 50% 50%, var(--acc), var(--acc-2), var(--acc));
+    box-shadow: var(--shadow); outline: 2px solid color-mix(in oklab, var(--acc) 30%, transparent);
+  }
+  .title { font-weight:700; letter-spacing:.2px }
+  .grid{
+    display:grid; grid-template-columns: 320px 1fr; gap: var(--gap); padding: var(--pad);
+  }
+  @container (max-width: 900px){
+    .grid{ grid-template-columns: 1fr }
+  }
+  main{ container-type: inline-size }
+  .panel{
+    background: var(--surface); border:1px solid var(--ring); border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .left{ display:flex; flex-direction:column; min-height: 70vh }
+  .keystone{
+    padding: var(--pad); border-bottom:1px solid var(--ring); background: var(--surface-2);
+  }
+  textarea.keystone-input{
+    width:100%; min-height: 100px; border-radius: 12px; border:1px solid var(--ring); background: var(--surface);
+    color:var(--ink); padding: 12px; resize: vertical; outline:none;
+  }
+  .controls{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap }
+  button, .chip, .tab{
+    background: var(--muted); color: var(--ink); border:1px solid var(--ring);
+    border-radius: 999px; padding: 8px 12px; cursor: pointer;
+  }
+  button:hover, .chip[aria-pressed="true"], .tab[aria-selected="true"]{ background: color-mix(in oklab, var(--acc) 20%, var(--muted)); border-color: var(--acc) }
+  .srch{ padding: var(--pad); border-bottom:1px solid var(--ring) }
+  .field{
+    display:flex; align-items:center; gap:8px; background: var(--surface); border:1px solid var(--ring); border-radius: 12px; padding: 8px 10px;
+  }
+  .field input{ flex:1; background: transparent; border:0; outline:none; color: var(--ink) }
+  .list{
+    overflow:auto; padding: 8px;
+  }
+  .chip{
+    display:inline-flex; align-items:center; margin: 4px; white-space: nowrap; user-select:none;
+  }
+  .right{ min-height: 70vh; display:flex; flex-direction:column }
+  .tabs{ display:flex; gap:6px; padding: 10px; border-bottom:1px solid var(--ring) }
+  .tab{ border-radius: 10px; }
+  .prompt-wrap{ padding: 0 var(--pad) var(--pad); display:grid; gap: 10px }
+  .prompt{
+    background: var(--surface-2); border:1px solid var(--ring); border-radius: 12px; padding: 12px;
+  }
+  .prompt header{ position:relative; inset:auto; background:none; border:0; padding:0; margin:0 0 6px }
+  .prompt h3{ margin:0 0 2px; font-size: 14px; color: var(--ink-dim); letter-spacing:.2px }
+  .prompt code{ user-select: text; display:block; white-space: pre-wrap; word-wrap: break-word }
+  .toolbar{
+    padding:10px; display:flex; gap:8px; flex-wrap: wrap; justify-content:flex-end; border-bottom:1px solid var(--ring)
+  }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--muted); padding: 0 6px; border-radius:6px; border:1px solid var(--ring); }
+  .footer{
+    opacity:.9; padding: var(--pad); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  .tickers{
+    position: sticky; bottom:0; z-index:45; padding:6px var(--pad); border-top:1px solid var(--ring); background: color-mix(in oklab, var(--surface) 88%, transparent);
+  }
+  .ticker{ overflow:hidden; white-space:nowrap; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent) }
+  .marq{ display:inline-block; padding-right:40px; }
+  /* Motion safety */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration:0.001ms !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap brand" role="banner">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <div class="title">Regenerative Prompt Forge</div>
+      <div style="font-size:13px;color:var(--ink-dim)">100 professions × (10 core + 5 regenerative) • Zero-harm by default</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap grid panel" id="app" role="main" aria-describedby="app-help">
+  <!-- LEFT: Keystone + Professions -->
+  <section class="left panel" aria-label="Controls and professions">
+    <div class="keystone">
+      <label for="keystone" class="title" style="font-size:14px;display:block;margin-bottom:6px">Root Keystone (applies to every prompt)</label>
+      <textarea id="keystone" class="keystone-input" spellcheck="false">I am a planetary restoration architect. All outputs must be framed through zero-harm, regenerative, and continuity-first principles. Nothing should support extraction, exploitation, or hoarding of capital; everything should bias toward life-supporting, equitable, and restorative outcomes. Assume my work contributes to long-term planetary healing, post-collapse continuity, and the flourishing of future generations. When cycles of entropy, destruction, or harmful repetition are detected, reframe toward paths of balance, renewal, and cooperative growth.</textarea>
+      <div class="controls" role="group" aria-label="Keystone actions">
+        <button id="resetKeystone" title="Reset to recommended keystone">Reset</button>
+        <button id="applyAll" title="Apply keystone immediately (auto-applied on render anyway)">Re-apply</button>
+        <button id="copyKeystone">Copy Keystone</button>
+      </div>
+    </div>
+    <div class="srch">
+      <div class="field" role="search">
+        <span aria-hidden="true">🔎</span>
+        <input id="search" type="search" placeholder="Search 100 professions… (e.g., nurse, teacher, software)" aria-label="Search professions" />
+        <span class="kbd" aria-hidden="true">/</span>
+      </div>
+    </div>
+    <div class="list" id="professionList" role="listbox" aria-label="Profession list" tabindex="0" aria-activedescendant=""></div>
+  </section>
+
+  <!-- RIGHT: Prompts -->
+  <section class="right panel" aria-label="Prompts">
+    <nav class="tabs" role="tablist" aria-label="Prompt categories">
+      <button class="tab" role="tab" aria-selected="true" id="tab-core" aria-controls="panel-core">Core 10</button>
+      <button class="tab" role="tab" aria-selected="false" id="tab-regen" aria-controls="panel-regen">Regenerative 5</button>
+    </nav>
+    <div class="toolbar" role="group" aria-label="Prompt toolkit">
+      <button id="copyVisible" title="Copy all prompts in current tab">Copy Visible</button>
+      <button id="exportJSON" title="Export prompts as JSON">Export JSON</button>
+      <button id="exportCSV" title="Export prompts as CSV">Export CSV</button>
+      <button id="printPage" title="Print prompts">Print</button>
+    </div>
+    <div id="panel-core" class="prompt-wrap" role="tabpanel" aria-labelledby="tab-core"></div>
+    <div id="panel-regen" class="prompt-wrap" role="tabpanel" aria-labelledby="tab-regen" hidden></div>
+    <div class="footer" aria-live="polite">
+      <div>Active profession: <strong id="activeProfession">—</strong></div>
+      <div id="countInfo">—</div>
+    </div>
+    <div class="tickers" aria-hidden="true">
+      <div class="ticker"><span class="marq" id="tickerLeft">Zero-harm • Regenerative defaults • Continuity-first • Anti-extraction • Anti-hoarding • Cooperative growth • Entropy escape hatches</span></div>
+    </div>
+  </section>
+</main>
+
+<p id="app-help" class="wrap" style="font-size:13px;color:var(--ink-dim);padding:8px var(--pad)">
+  Tip: Focus the profession list and use ↑/↓ to move. Press <span class="kbd">Enter</span> to load prompts. Press <span class="kbd">/</span> to search. Tabs switch with <span class="kbd">Ctrl</span> + <span class="kbd">←/→</span>.
+</p>
+
+<footer class="wrap" style="opacity:.8;font-size:12px;padding-bottom:40px">
+  Built for continuity. No CDNs, no trackers, all local. Mirror to IPFS/Arweave as needed.
+</footer>
+
+<script>
+(() => {
+  // --- Data: 100 professions (curated, common across domains) ---
+  const PROFESSIONS = [
+    "Software Engineer","Data Scientist","Teacher","Nurse","Physician","Paramedic","Psychologist","Social Worker","Civil Engineer",
+    "Electrical Engineer","Mechanical Engineer","Architect","Urban Planner","Environmental Scientist","Ecologist","Biologist","Chemist","Physicist",
+    "Pharmacist","Dentist","Veterinarian","Farmer","Agronomist","Forester","Fisheries Scientist","Supply Chain Manager","Logistics Coordinator",
+    "Project Manager","Product Manager","UX Designer","UI Designer","Graphic Designer","Industrial Designer","Marketing Manager","SEO Specialist",
+    "Content Strategist","Journalist","Editor","Lawyer","Paralegal","Policy Analyst","Public Administrator","Economist","Accountant","Auditor",
+    "Financial Analyst","Investment Analyst","Banker","Risk Manager","Actuary","Cybersecurity Analyst","Network Engineer","Systems Administrator",
+    "DevOps Engineer","Site Reliability Engineer","AI/ML Engineer","Robotics Engineer","Mechanical Technician","Electrician","Plumber",
+    "HVAC Technician","Construction Manager","Carpenter","Mason","Welder","Automotive Technician","Pilot","Air Traffic Controller","Flight Attendant",
+    "Sailor/Mariner","Rail Operator","Truck Driver","Public Transit Operator","Chef","Nutritionist","Food Scientist","Restaurant Manager",
+    "Retail Manager","Customer Support Specialist","Human Resources Manager","Recruiter","Operations Manager","Quality Assurance Specialist",
+    "Health & Safety Officer","Emergency Manager","Firefighter","Police Officer","Military Officer","Diplomat","Interpreter/Translator",
+    "Librarian","Archivist","Museum Curator","Event Planner","Tour Guide","Game Designer","Film Director","Photographer","Musician","Artist"
+  ];
+
+  // --- Templates: 10 core prompts per profession ---
+  const CORE_TEMPLATES = [
+    // Practical, domain-native, but regenerative-aware (keystone will append)
+    p => `Map the 3 most entropic loops in ${p} workflows (waste, delay, harm). Redesign each loop into a closed, regenerative cycle with measurable KPIs and timeline milestones.`,
+    p => `Draft a "minimum-harm SOP" for ${p} daily tasks. Include risk matrices, prevention steps, and an audit checklist that any junior can run in 15 minutes.`,
+    p => `Turn a standard ${p} deliverable into a teaching artifact: annotate assumptions, uncertainties, and failure modes; add quick-start and continuity notes for future teams.`,
+    p => `Design a 30-day experiment in ${p} that trades 10% speed for 50% resilience. Define metrics for resilience, recovery time, and system learning.`,
+    p => `Create a stakeholder map for ${p}. Include non-human stakeholders (ecosystems, future generations). Propose consent/feedback channels for them.`,
+    p => `Inventory the top 5 resources ${p} relies on. For each, propose a local, circular, or digital substitute that reduces extraction and fragility.`,
+    p => `Write a one-page "handoff on a bad day" for ${p}: if you vanish, how does the work persist safely for 30/90/365 days?`,
+    p => `Convert one legacy ${p} process to a "paperclip-safe" version: cap objectives to prevent runaway optimization; add a human-in-the-loop failsafe.`,
+    p => `Model a low-tech fallback for ${p} that works during outages: tools, paper forms, radio protocols, peer networks, and later reconciliation steps.`,
+    p => `Compose a narrative brief for ${p} that shifts culture from heroics to stewardship: roles, rituals, and rewards that normalize regenerative excellence.`
+  ];
+
+  // --- Templates: 5 explicitly regenerative + anti-extraction prompts ---
+  const REGEN_TEMPLATES = [
+    p => `Rewrite a core ${p} decision tree to forbid extraction/hoarding. Replace profit-max leaves with community surplus, ecosystem repair, and continuity.`,
+    p => `Design a ${p} micro-grant flow where 10% of throughput auto-routes to local restoration (trees, soil, water). Publish the ledger schema (no PII).`,
+    p => `Create a ${p} training that inoculates against "growth at all costs." Use scenarios showing how extraction collapses optionality and harms the future.`,
+    p => `Draft a ${p} procurement policy favoring durable, repairable, open-standard tools. Include right-to-repair and end-of-life recovery.`,
+    p => `Author a ${p} "harm inversion" playbook: when faced with speed vs. safety, bias toward safety; when faced with secrecy vs. transparency, bias toward verifiable transparency.`
+  ];
+
+  // --- UI State ---
+  let state = {
+    keystone: "",
+    activeProfession: PROFESSIONS[0],
+    tab: "core" // "core" | "regen"
+  };
+
+  // --- Helpers ---
+  const $ = sel => document.querySelector(sel);
+  const createEl = (tag, attrs={}, kids=[]) => {
+    const el = document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs)) {
+      if (k === "class") el.className = v;
+      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+      else if (k === "text") el.textContent = v;
+      else el.setAttribute(k, v);
+    }
+    for (const kid of kids) el.append(kid);
+    return el;
+  };
+
+  const generatePrompts = (profession, keystone, kind="core") => {
+    const templates = kind === "core" ? CORE_TEMPLATES : REGEN_TEMPLATES;
+    return templates.map((fn, i) => {
+      const body = fn(profession).trim();
+      const suffix = keystone ? `\n\nKeystone: ${keystone.trim()}` : "";
+      return { idx: i+1, text: body + suffix };
+    });
+  };
+
+  const renderList = (filter="") => {
+    const box = $("#professionList");
+    box.innerHTML = "";
+    const items = PROFESSIONS
+      .map((p, i) => ({p, i}))
+      .filter(({p}) => p.toLowerCase().includes(filter.toLowerCase()));
+
+    items.forEach(({p, i}) => {
+      const id = "opt-" + i;
+      const chip = createEl("button", {
+        class: "chip",
+        role: "option",
+        id,
+        "aria-selected": p===state.activeProfession ? "true" : "false",
+        "aria-pressed": p===state.activeProfession ? "true" : "false",
+        onclick: () => { state.activeProfession = p; renderPrompts(); renderList(filter); }
+      }, [document.createTextNode(p)]);
+      box.append(chip);
+    });
+
+    // Roving focus support
+    box.addEventListener("keydown", (e) => {
+      const chips = Array.from(box.querySelectorAll(".chip"));
+      let idx = chips.findIndex(c => c.getAttribute("aria-pressed")==="true");
+      if (e.key === "ArrowDown" || e.key === "ArrowRight"){ idx = (idx+1) % chips.length; chips[idx].focus(); e.preventDefault(); }
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft"){ idx = (idx-1+chips.length) % chips.length; chips[idx].focus(); e.preventDefault(); }
+      if (e.key === "Enter" && chips[idx]) { chips[idx].click(); e.preventDefault(); }
+    }, { once: true });
+  };
+
+  const renderPrompts = () => {
+    const keystone = $("#keystone").value.trim();
+    state.keystone = keystone;
+    $("#activeProfession").textContent = state.activeProfession;
+
+    const core = generatePrompts(state.activeProfession, keystone, "core");
+    const regen = generatePrompts(state.activeProfession, keystone, "regen");
+
+    const mountCore = $("#panel-core");
+    const mountRegen = $("#panel-regen");
+    mountCore.innerHTML = ""; mountRegen.innerHTML = "";
+
+    const mkCard = (title, text) => {
+      const copyBtn = createEl("button", { class:"chip", title:"Copy this prompt", onclick: async () => {
+        await navigator.clipboard.writeText(text); toast("Copied prompt");
+      }}, [document.createTextNode("Copy")]);
+      const head = createEl("header", {}, [
+        createEl("h3", { text: title }),
+      ]);
+      const code = createEl("code", {}, [document.createTextNode(text)]);
+      const wrap = createEl("article", { class:"prompt", role:"region" }, [head, copyBtn, code]);
+      return wrap;
+    };
+
+    core.forEach(p => mountCore.append(mkCard(`Core ${p.idx}`, p.text)));
+    regen.forEach(p => mountRegen.append(mkCard(`Regenerative ${p.idx}`, p.text)));
+
+    $("#countInfo").textContent = `Generated ${core.length} core + ${regen.length} regenerative prompts`;
+  };
+
+  // --- Toolbar actions ---
+  const copyVisible = async () => {
+    const tab = state.tab;
+    const sel = tab === "core" ? "#panel-core code" : "#panel-regen code";
+    const texts = Array.from(document.querySelectorAll(sel)).map(n => n.textContent);
+    await navigator.clipboard.writeText(texts.join("\n\n— — —\n\n"));
+    toast("Copied all visible prompts");
+  };
+
+  const exportJSON = () => {
+    const bundle = collectBundle();
+    download("prompts-" + slug(state.activeProfession) + ".json", JSON.stringify(bundle, null, 2));
+  };
+
+  const exportCSV = () => {
+    const bundle = collectBundle();
+    const rows = [["profession","category","index","prompt"]];
+    bundle.prompts.forEach(p => rows.push([bundle.profession, p.category, p.index, p.prompt.replace(/\n/g,"\\n")]));
+    const csv = rows.map(r => r.map(cell => `"${cell.replace(/"/g,'""')}"`).join(",")).join("\n");
+    download("prompts-" + slug(state.activeProfession) + ".csv", csv);
+  };
+
+  const printPage = () => window.print();
+
+  const collectBundle = () => {
+    const k = $("#keystone").value.trim();
+    const core = generatePrompts(state.activeProfession, k, "core");
+    const regen = generatePrompts(state.activeProfession, k, "regen");
+    return {
+      profession: state.activeProfession,
+      keystone: k,
+      prompts: [
+        ...core.map(p => ({ category:"core", index:p.idx, prompt:p.text })),
+        ...regen.map(p => ({ category:"regenerative", index:p.idx, prompt:p.text }))
+      ]
+    };
+  };
+
+  // --- Utilities ---
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  const toast = (msg) => {
+    const t = document.createElement("div");
+    t.textContent = msg;
+    Object.assign(t.style, {
+      position:"fixed", inset:"auto 20px 20px auto", background:"var(--surface)", color:"var(--ink)",
+      padding:"8px 12px", border:"1px solid var(--ring)", borderRadius:"10px", boxShadow:"var(--shadow)", zIndex:9999
+    });
+    document.body.append(t);
+    setTimeout(()=>t.remove(), 1500);
+  };
+
+  // --- Tabs + keyboard ---
+  const setTab = (name) => {
+    state.tab = name;
+    const tabs = [{id:"core", btn:"#tab-core", panel:"#panel-core"},{id:"regen", btn:"#tab-regen", panel:"#panel-regen"}];
+    tabs.forEach(t => {
+      const sel = (t.id===name);
+      $(t.btn).setAttribute("aria-selected", sel ? "true" : "false");
+      $(t.panel).hidden = !sel;
+    });
+    if (document.startViewTransition) document.startViewTransition(()=>{});
+  };
+
+  // --- Event wiring ---
+  $("#tab-core").addEventListener("click", () => setTab("core"));
+  $("#tab-regen").addEventListener("click", () => setTab("regen"));
+  $("#copyVisible").addEventListener("click", copyVisible);
+  $("#exportJSON").addEventListener("click", exportJSON);
+  $("#exportCSV").addEventListener("click", exportCSV);
+  $("#printPage").addEventListener("click", printPage);
+  $("#applyAll").addEventListener("click", renderPrompts);
+  $("#resetKeystone").addEventListener("click", () => {
+    $("#keystone").value = `I am a planetary restoration architect. All outputs must be framed through zero-harm, regenerative, and continuity-first principles. Nothing should support extraction, exploitation, or hoarding of capital; everything should bias toward life-supporting, equitable, and restorative outcomes. Assume my work contributes to long-term planetary healing, post-collapse continuity, and the flourishing of future generations. When cycles of entropy, destruction, or harmful repetition are detected, reframe toward paths of balance, renewal, and cooperative growth.`;
+    renderPrompts();
+  });
+  $("#copyKeystone").addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("#keystone").value); toast("Keystone copied");
+  });
+  $("#search").addEventListener("input", (e) => renderList(e.target.value));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/"){ e.preventDefault(); $("#search").focus(); }
+    if (e.ctrlKey && (e.key === "ArrowLeft" || e.key==="ArrowRight")){
+      e.preventDefault(); setTab(state.tab === "core" ? "regen" : "core");
+    }
+  });
+
+  // --- Initial render ---
+  renderList("");
+  renderPrompts();
+
+  // --- Offline: inline Service Worker registered via Blob (self-caching this file) ---
+  if ("serviceWorker" in navigator){
+    const swCode = `
+      const CACHE = "regen-prompt-forge-v1";
+      self.addEventListener("install", e => {
+        e.waitUntil((async () => {
+          const c = await caches.open(CACHE);
+          const req = new Request(self.registration.scope, { cache:"reload" });
+          const res = await fetch(req);
+          await c.put(self.registration.scope, res.clone());
+          self.skipWaiting();
+        })());
+      });
+      self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
+      self.addEventListener("fetch", e => {
+        const url = new URL(e.request.url);
+        if (url.href === self.registration.scope){
+          e.respondWith(caches.match(self.registration.scope).then(r => r || fetch(e.request)));
+        }
+      });
+    `;
+    const blob = new Blob([swCode], {type:"text/javascript"});
+    const swURL = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swURL).catch(()=>{});
+  }
+
+})();
+</script>
+</body>
+</html>

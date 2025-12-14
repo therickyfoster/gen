@@ -1,0 +1,4006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Image Generator - Photorealistic images using WebGPU locally or cloud APIs">
+    <meta name="color-scheme" content="dark light">
+    <!-- Provenance: Planetary Restoration Archive | planetaryrestorationarchive.com -->
+    <!-- GitHub: github.com/therickyfoster | Steward: Foster + Navi -->
+    <meta name="generator" content="Foster + Navi · Planetary Restoration Archive">
+    <link rel="me" href="https://planetaryrestorationarchive.com">
+    <link rel="me" href="https://github.com/TheRickyFoster">
+    
+    <!-- Basic CSP for single-file app - can be hardened if splitting files later -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://*.huggingface.co https://api-inference.huggingface.co https://cdn-lfs.huggingface.co https://*.githubusercontent.com blob:; worker-src 'self' blob:;">
+    
+    <title>AI Image Generator - WebGPU + Cloud</title>
+
+    <script type="application/manifest+json">
+    {
+        "name": "AI Image Generator",
+        "short_name": "AI Images",
+        "description": "Generate AI images using local WebGPU or cloud APIs",
+        "start_url": "./",
+        "display": "standalone",
+        "background_color": "#121212",
+        "theme_color": "#2a2a2a",
+        "icons": [
+            {
+                "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMyYTJhMmEiLz48cGF0aCBkPSJNMjU2IDEyOGMtNzAuNyAwLTEyOCA1Ny4zLTEyOCAxMjhzNTcuMyAxMjggMTI4IDEyOCAxMjgtNTcuMyAxMjgtMTI4LTU3LjMtMTI4LTEyOC0xMjh6TTM4NCAyNTZjMCA3MC43LTU3LjMgMTI4LTEyOCAxMjhzLTEyOC01Ny4zLTEyOC0xMjggNTcuMy0xMjggMTI4LTEyOCAxMjggNTcuMyAxMjggMTI4eiIgZmlsbD0iIzY0ZmZkYSIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjIwMCIgcj0iNDAiIGZpbGw9IiNmZmY1MDAiLz48Y2lyY2xlIGN4PSIzMTIiIGN5PSIyMDAiIHI9IjQwIiBmaWxsPSIjZmY0OWRiIi8+PC9zdmc+",
+                "sizes": "512x512",
+                "type": "image/svg+xml"
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        /* 🎨 Base styles, CSS variables, etc. */
+        :root {
+            /* Color scheme */
+            --color-bg: #121212;
+            --color-surface: #1e1e1e;
+            --color-surface-light: #2a2a2a;
+            --color-surface-hover: #333;
+            --color-primary: #64ffda;
+            --color-primary-dark: #00bfa5;
+            --color-secondary: #ff49db;
+            --color-accent: #fff500;
+            --color-error: #ff5252;
+            --color-warning: #ffab40;
+            --color-success: #69f0ae;
+            --color-text-primary: rgba(255, 255, 255, 0.87);
+            --color-text-secondary: rgba(255, 255, 255, 0.6);
+            --color-text-disabled: rgba(255, 255, 255, 0.38);
+            --color-border: rgba(255, 255, 255, 0.12);
+            --color-selection-bg: rgba(100, 255, 218, 0.2);
+            --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.12);
+            --shadow-large: 0 8px 16px rgba(0, 0, 0, 0.14);
+            --radius-small: 4px;
+            --radius-medium: 8px;
+            --radius-large: 16px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --animation-fast: 0.15s;
+            --animation-normal: 0.25s;
+            --animation-slow: 0.4s;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --color-bg: #f5f5f5;
+                --color-surface: #ffffff;
+                --color-surface-light: #f0f0f0;
+                --color-surface-hover: #e0e0e0;
+                --color-primary: #00bfa5;
+                --color-primary-dark: #008e76;
+                --color-secondary: #d81b60;
+                --color-accent: #ffd600;
+                --color-error: #b71c1c;
+                --color-warning: #f57c00;
+                --color-success: #388e3c;
+                --color-text-primary: rgba(0, 0, 0, 0.87);
+                --color-text-secondary: rgba(0, 0, 0, 0.6);
+                --color-text-disabled: rgba(0, 0, 0, 0.38);
+                --color-border: rgba(0, 0, 0, 0.12);
+                --color-selection-bg: rgba(0, 191, 165, 0.2);
+            }
+        }
+
+        [data-theme="medieval"] {
+            --color-bg: #2c2518;
+            --color-surface: #3c3527;
+            --color-surface-light: #4d4433;
+            --color-surface-hover: #5d5443;
+            --color-primary: #c19a6b;
+            --color-primary-dark: #8a6f4d;
+            --color-secondary: #912911;
+            --color-accent: #d3b88c;
+            --color-text-primary: rgba(243, 231, 219, 0.87);
+            --color-text-secondary: rgba(243, 231, 219, 0.6);
+            --color-text-disabled: rgba(243, 231, 219, 0.38);
+            --color-border: rgba(243, 231, 219, 0.12);
+            --color-selection-bg: rgba(193, 154, 107, 0.2);
+        }
+
+        [data-theme="space"] {
+            --color-bg: #0a0e17;
+            --color-surface: #131a29;
+            --color-surface-light: #1c2536;
+            --color-surface-hover: #273042;
+            --color-primary: #6ba3ff;
+            --color-primary-dark: #3d74d5;
+            --color-secondary: #bc4fff;
+            --color-accent: #45ffbc;
+            --color-text-primary: rgba(224, 237, 255, 0.87);
+            --color-text-secondary: rgba(224, 237, 255, 0.6);
+            --color-text-disabled: rgba(224, 237, 255, 0.38);
+            --color-border: rgba(224, 237, 255, 0.12);
+            --color-selection-bg: rgba(107, 163, 255, 0.2);
+        }
+
+        [data-theme="anime"] {
+            --color-bg: #1a1b26;
+            --color-surface: #24283b;
+            --color-surface-light: #2e3347;
+            --color-surface-hover: #3b4261;
+            --color-primary: #7aa2f7;
+            --color-primary-dark: #5874dc;
+            --color-secondary: #bb9af7;
+            --color-accent: #ff9e64;
+            --color-text-primary: rgba(220, 223, 241, 0.87);
+            --color-text-secondary: rgba(220, 223, 241, 0.6);
+            --color-text-disabled: rgba(220, 223, 241, 0.38);
+            --color-border: rgba(220, 223, 241, 0.12);
+            --color-selection-bg: rgba(122, 162, 247, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: var(--font-family);
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--color-text-primary);
+            background: var(--color-bg);
+            transition: background-color var(--animation-normal) ease;
+            scroll-behavior: smooth;
+        }
+
+        /* Selection */
+        ::selection {
+            background-color: var(--color-selection-bg);
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            padding: 8px 16px;
+            background-color: var(--color-primary);
+            color: var(--color-bg);
+            font-weight: 600;
+            z-index: 9999;
+            text-decoration: none;
+            transition: top 0.3s ease;
+            border-radius: 0 0 var(--radius-small) 0;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        h1 { font-size: 2rem; }
+        h2 { font-size: 1.5rem; }
+        h3 { font-size: 1.25rem; }
+        h4 { font-size: 1.125rem; }
+        h5 { font-size: 1rem; }
+        h6 { font-size: 0.875rem; }
+
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: var(--color-primary);
+            text-decoration: none;
+            transition: color var(--animation-fast) ease;
+        }
+
+        a:hover {
+            color: var(--color-secondary);
+            text-decoration: underline;
+        }
+
+        a:focus {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+            text-decoration: none;
+        }
+
+        /* Layout */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--color-surface);
+            box-shadow: var(--shadow-medium);
+            padding: var(--spacing-md) 0;
+        }
+
+        main {
+            flex: 1;
+            padding: var(--spacing-lg) 0;
+        }
+
+        footer {
+            background-color: var(--color-surface);
+            padding: var(--spacing-md) 0;
+            margin-top: auto;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: calc(-1 * var(--spacing-md));
+            margin-left: calc(-1 * var(--spacing-md));
+        }
+
+        .col {
+            flex: 1 0 0%;
+            padding-right: var(--spacing-md);
+            padding-left: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        @media (max-width: 768px) {
+            .row {
+                flex-direction: column;
+            }
+            
+            .col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* Components */
+        .card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-medium);
+            box-shadow: var(--shadow-medium);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            transition: transform var(--animation-fast) ease, box-shadow var(--animation-fast) ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-large);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--spacing-md);
+        }
+
+        .card-header h3 {
+            margin-bottom: 0;
+        }
+
+        .card-body {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid var(--color-border);
+            padding-top: var(--spacing-md);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-group label {
+            display: inline-block;
+            margin-bottom: var(--spacing-xs);
+            font-weight: 500;
+        }
+
+        .form-group .hint {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            margin-top: var(--spacing-xs);
+        }
+
+        .input, .textarea, .select {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--color-text-primary);
+            background-color: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-small);
+            transition: border-color var(--animation-fast) ease, box-shadow var(--animation-fast) ease;
+        }
+
+        .input:focus, .textarea:focus, .select:focus {
+            border-color: var(--color-primary);
+            outline: 0;
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.25);
+        }
+
+        .input::placeholder, .textarea::placeholder {
+            color: var(--color-text-disabled);
+        }
+
+        .textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255, 255, 255, 0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px;
+            padding-right: 2.5rem;
+        }
+
+        @media (prefers-color-scheme: light) {
+            .select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0, 0, 0, 0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            }
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group .input {
+            flex: 1 1 auto;
+            width: 1%;
+        }
+
+        .input-group-prepend {
+            margin-right: -1px;
+        }
+
+        .input-group-append {
+            margin-left: -1px;
+        }
+
+        .input-group-text {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--color-text-secondary);
+            text-align: center;
+            white-space: nowrap;
+            background-color: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+        }
+
+        .input-group > .input:not(:first-child) {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .input-group > .input:not(:last-child) {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .input-group-prepend > .input-group-text {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .input-group-append > .input-group-text {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            font-weight: 500;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: var(--radius-small);
+            transition: color var(--animation-fast) ease, background-color var(--animation-fast) ease, 
+                      border-color var(--animation-fast) ease, box-shadow var(--animation-fast) ease;
+            cursor: pointer;
+        }
+
+        .btn:focus, .btn:hover {
+            text-decoration: none;
+        }
+
+        .btn:focus {
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.25);
+        }
+
+        .btn:disabled, .btn.disabled {
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .btn-primary {
+            color: var(--color-bg);
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-dark);
+            border-color: var(--color-primary-dark);
+        }
+
+        .btn-secondary {
+            color: #fff;
+            background-color: var(--color-secondary);
+            border-color: var(--color-secondary);
+        }
+
+        .btn-outline {
+            color: var(--color-primary);
+            background-color: transparent;
+            border-color: var(--color-primary);
+        }
+
+        .btn-outline:hover {
+            color: var(--color-bg);
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-text {
+            color: var(--color-primary);
+            background-color: transparent;
+            border-color: transparent;
+        }
+
+        .btn-text:hover {
+            color: var(--color-primary-dark);
+            text-decoration: underline;
+        }
+
+        .btn-group {
+            display: inline-flex;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .btn-group > .btn {
+            position: relative;
+            flex: 1 1 auto;
+        }
+
+        .btn-group > .btn:not(:first-child) {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .btn-group > .btn:not(:last-child) {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--color-surface);
+            color: var(--color-text-primary);
+            text-align: left;
+            border-radius: var(--radius-small);
+            padding: var(--spacing-sm);
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity var(--animation-fast) ease;
+            box-shadow: var(--shadow-medium);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--color-surface) transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: var(--radius-small);
+            background-color: var(--color-surface-light);
+            color: var(--color-text-secondary);
+        }
+
+        .badge-success {
+            background-color: var(--color-success);
+            color: var(--color-bg);
+        }
+
+        .badge-warning {
+            background-color: var(--color-warning);
+            color: var(--color-bg);
+        }
+
+        .badge-error {
+            background-color: var(--color-error);
+            color: #fff;
+        }
+
+        .badge-pill {
+            border-radius: 10rem;
+        }
+
+        /* Alert */
+        .alert {
+            position: relative;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border: 1px solid transparent;
+            border-radius: var(--radius-small);
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        /* Progress bar */
+        .progress {
+            display: flex;
+            height: 0.5rem;
+            overflow: hidden;
+            font-size: 0.75rem;
+            background-color: var(--color-surface-light);
+            border-radius: var(--radius-small);
+        }
+
+        .progress-bar {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            white-space: nowrap;
+            background-color: var(--color-primary);
+            transition: width var(--animation-normal) ease;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .tab {
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--color-text-secondary);
+            transition: color var(--animation-fast) ease, border-color var(--animation-fast) ease;
+        }
+
+        .tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--color-text-primary);
+            border-bottom-color: var(--color-border);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            margin: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-surface-light);
+            transition: var(--animation-normal);
+            border-radius: 34px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: var(--animation-normal);
+            border-radius: 50%;
+        }
+
+        input:checked + .switch-slider {
+            background-color: var(--color-primary);
+        }
+
+        input:focus + .switch-slider {
+            box-shadow: 0 0 1px var(--color-primary);
+        }
+
+        input:checked + .switch-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Range slider */
+        .range-slider {
+            width: 100%;
+            margin: var(--spacing-sm) 0;
+        }
+
+        .range-slider-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .range-slider-value {
+            min-width: 40px;
+            text-align: center;
+            margin-left: var(--spacing-sm);
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .range-slider input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--color-surface-light);
+            outline: none;
+        }
+
+        .range-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            cursor: pointer;
+            transition: background var(--animation-fast) ease;
+        }
+
+        .range-slider input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border: none;
+            border-radius: 50%;
+            background: var(--color-primary);
+            cursor: pointer;
+            transition: background var(--animation-fast) ease;
+        }
+
+        .range-slider input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .range-slider input[type="range"]::-moz-range-thumb:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* Image gallery */
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .image-gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-small);
+            aspect-ratio: 1;
+            background-color: var(--color-surface-light);
+            cursor: pointer;
+            transition: transform var(--animation-fast) ease;
+        }
+
+        .image-gallery-item:hover {
+            transform: scale(1.02);
+        }
+
+        .image-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            overflow: auto;
+            padding: var(--spacing-lg);
+        }
+
+        .lightbox-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .lightbox-image {
+            max-width: 90%;
+            max-height: 80vh;
+            object-fit: contain;
+            display: block;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .lightbox-controls {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            font-size: 1.5rem;
+            color: white;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .navbar-brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand img, .navbar-brand svg {
+            margin-right: var(--spacing-sm);
+        }
+
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav li {
+            margin-left: var(--spacing-md);
+        }
+
+        .navbar-nav a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            transition: color var(--animation-fast) ease;
+        }
+
+        .navbar-nav a:hover, .navbar-nav a:focus {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+            }
+            
+            .navbar-brand {
+                margin-bottom: var(--spacing-sm);
+            }
+            
+            .navbar-nav {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+            
+            .navbar-nav li {
+                margin: 0;
+                margin-bottom: var(--spacing-sm);
+                width: 100%;
+            }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn var(--animation-fast) ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-dialog {
+            position: relative;
+            width: auto;
+            max-width: 500px;
+            margin: 1.75rem auto;
+            pointer-events: none;
+            animation: slideIn var(--animation-normal) ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translate(0, -50px); opacity: 0; }
+            to { transform: translate(0, 0); opacity: 1; }
+        }
+
+        .modal-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            pointer-events: auto;
+            background-color: var(--color-surface);
+            background-clip: padding-box;
+            border-radius: var(--radius-medium);
+            outline: 0;
+            box-shadow: var(--shadow-large);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-title {
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .modal-close {
+            padding: 0;
+            background-color: transparent;
+            border: 0;
+            appearance: none;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            position: relative;
+            flex: 1 1 auto;
+            padding: var(--spacing-lg);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .modal-footer > * {
+            margin: 0.25rem;
+        }
+
+        /* Spinners */
+        .spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            vertical-align: text-bottom;
+            border: 0.2em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner 0.75s linear infinite;
+        }
+
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+
+        /* Custom app styles */
+        .bg-starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+        }
+
+        .backend-selector {
+            display: flex;
+            justify-content: space-between;
+            background: var(--color-surface-light);
+            border-radius: var(--radius-medium);
+            padding: 4px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .backend-option {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--radius-small);
+            color: var(--color-text-secondary);
+            transition: background-color var(--animation-fast) ease, color var(--animation-fast) ease;
+            font-weight: 500;
+        }
+
+        .backend-option.active {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-small);
+            background-color: var(--color-surface-light);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: var(--spacing-xs);
+        }
+
+        .status-indicator.ready {
+            background-color: var(--color-success);
+        }
+
+        .status-indicator.warning {
+            background-color: var(--color-warning);
+        }
+
+        .status-indicator.error {
+            background-color: var(--color-error);
+        }
+
+        .drop-area {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-lg);
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            transition: border-color var(--animation-fast) ease, background-color var(--animation-fast) ease;
+        }
+
+        .drop-area.active {
+            border-color: var(--color-primary);
+            background-color: rgba(100, 255, 218, 0.05);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            border-radius: var(--radius-small);
+            overflow: hidden;
+            background-color: var(--color-surface-light);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .canvas-container canvas {
+            display: block;
+            width: 100%;
+        }
+
+        .canvas-tools {
+            position: absolute;
+            bottom: var(--spacing-sm);
+            right: var(--spacing-sm);
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .canvas-tool {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--color-surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-small);
+            transition: background-color var(--animation-fast) ease;
+        }
+
+        .canvas-tool:hover {
+            background-color: var(--color-surface-hover);
+        }
+
+        .canvas-tool svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: var(--color-text-primary);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .resolution-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .resolution-preset {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-small);
+            background-color: var(--color-surface-light);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color var(--animation-fast) ease, color var(--animation-fast) ease;
+        }
+
+        .resolution-preset.active {
+            background-color: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .provenance-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-small);
+            background-color: var(--color-surface-light);
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+
+        .provenance-badge:hover {
+            background-color: var(--color-surface-hover);
+        }
+
+        .provenance-badge svg {
+            width: 14px;
+            height: 14px;
+            margin-right: var(--spacing-xs);
+        }
+
+        .shortcut-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--animation-normal) ease, visibility var(--animation-normal) ease;
+        }
+
+        .shortcut-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .shortcut-panel {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-medium);
+            box-shadow: var(--shadow-large);
+            width: 100%;
+            max-width: 600px;
+            padding: var(--spacing-lg);
+        }
+
+        .shortcut-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        @media (max-width: 576px) {
+            .shortcut-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .shortcut-key {
+            display: inline-block;
+            padding: 2px 8px;
+            background-color: var(--color-surface-light);
+            border-radius: var(--radius-small);
+            font-family: monospace;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        /* Hidden provenance */
+        .planetary-beacon {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+            
+            .app {
+                min-height: auto;
+            }
+            
+            .bg-starfield, 
+            .navbar, 
+            .footer,
+            .shortcut-overlay,
+            button:not(.print-include),
+            .backend-selector {
+                display: none !important;
+            }
+            
+            .card, 
+            .input, 
+            .textarea, 
+            .select,
+            .drop-area {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+            
+            .gallery-item {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Zero-Harm Note */
+        .zero-harm-note {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-top: var(--spacing-sm);
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    
+    <div class="app">
+        <!-- Background starfield animation -->
+        <div class="bg-starfield" aria-hidden="true"></div>
+        
+        <header>
+            <div class="container">
+                <nav class="navbar">
+                    <a href="#" class="navbar-brand">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
+                            <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
+                            <line x1="7.38" y1="12" x2="13.12" y2="2.06"></line>
+                            <line x1="9.69" y1="16" x2="3.95" y2="6.06"></line>
+                            <line x1="14.31" y1="16" x2="2.83" y2="16"></line>
+                            <line x1="16.62" y1="12" x2="10.88" y2="21.94"></line>
+                        </svg>
+                        <span>AI Image Generator</span>
+                    </a>
+                    <ul class="navbar-nav">
+                        <li><button id="open-model-config-btn" class="btn btn-text">Model Config</button></li>
+                        <li><button id="settings-btn" class="btn btn-text">Settings</button></li>
+                        <li><button id="help-btn" class="btn btn-text">Help</button></li>
+                        <li>
+                            <select id="theme-selector" class="select" aria-label="Select theme">
+                                <option value="auto">Auto Theme</option>
+                                <option value="medieval">Medieval</option>
+                                <option value="space">Space</option>
+                                <option value="anime">Anime</option>
+                            </select>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+        
+        <main id="main-content">
+            <div class="container">
+                <!-- System Status -->
+                <div class="system-status">
+                    <span class="status-indicator" id="status-indicator"></span>
+                    <span id="status-text">Checking system capabilities...</span>
+                </div>
+                
+                <!-- Backend Selector -->
+                <div class="backend-selector" role="radiogroup" aria-label="Select backend">
+                    <div class="backend-option active" id="local-backend" role="radio" aria-checked="true" tabindex="0">
+                        <span class="tooltip">
+                            Local WebGPU
+                            <span class="tooltip-text">Generate images locally in your browser using WebGPU. Requires compatible hardware and browser.</span>
+                        </span>
+                    </div>
+                    <div class="backend-option" id="cloud-backend" role="radio" aria-checked="false" tabindex="0">
+                        <span class="tooltip">
+                            Cloud API
+                            <span class="tooltip-text">Generate images using Hugging Face API. Requires internet connection, optional API key for better performance.</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Generation Controls -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Generate Images</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="generation-form">
+                            <div class="form-group">
+                                <label for="prompt">Positive Prompt</label>
+                                <div class="tooltip">
+                                    <i>ℹ️</i>
+                                    <span class="tooltip-text">Describe what you want to see in the image. Be specific and detailed for better results.</span>
+                                </div>
+                                <textarea id="prompt" class="textarea" placeholder="A serene lake at sunset, mountains in the background, photorealistic, 8k" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="negative-prompt">Negative Prompt</label>
+                                <div class="tooltip">
+                                    <i>ℹ️</i>
+                                    <span class="tooltip-text">Describe what you want to avoid in the image. Useful for removing common artifacts or unwanted elements.</span>
+                                </div>
+                                <textarea id="negative-prompt" class="textarea" placeholder="blurry, distorted, low quality, low resolution, bad anatomy, bad proportions"></textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="seed">Seed</label>
+                                        <div class="tooltip">
+                                            <i>ℹ️</i>
+                                            <span class="tooltip-text">Numerical value that determines the initial randomness. Using the same seed with identical settings will produce similar results.</span>
+                                        </div>
+                                        <div class="input-group">
+                                            <input type="number" id="seed" class="input" placeholder="Random" min="0" max="2147483647">
+                                            <div class="input-group-append">
+                                                <button type="button" id="randomize-seed" class="btn btn-outline">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="steps">Steps</label>
+                                        <div class="tooltip">
+                                            <i>ℹ️</i>
+                                            <span class="tooltip-text">Number of denoising steps. Higher values may produce better results but take longer to generate.</span>
+                                        </div>
+                                        <div class="range-slider-container">
+                                            <div class="range-slider">
+                                                <input type="range" id="steps" min="10" max="50" value="30" class="slider">
+                                            </div>
+                                            <div class="range-slider-value" id="steps-value">30</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="guidance-scale">Guidance Scale</label>
+                                        <div class="tooltip">
+                                            <i>ℹ️</i>
+                                            <span class="tooltip-text">Controls how closely the image follows your prompt. Higher values adhere more strictly to the prompt but may produce less varied results.</span>
+                                        </div>
+                                        <div class="range-slider-container">
+                                            <div class="range-slider">
+                                                <input type="range" id="guidance-scale" min="1" max="15" step="0.1" value="7.5" class="slider">
+                                            </div>
+                                            <div class="range-slider-value" id="guidance-scale-value">7.5</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="batch-size">Batch Size</label>
+                                        <div class="tooltip">
+                                            <i>ℹ️</i>
+                                            <span class="tooltip-text">Number of images to generate in a single batch. Higher values use more memory.</span>
+                                        </div>
+                                        <div class="range-slider-container">
+                                            <div class="range-slider">
+                                                <input type="range" id="batch-size" min="1" max="4" value="1" step="1" class="slider">
+                                            </div>
+                                            <div class="range-slider-value" id="batch-size-value">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Resolution</label>
+                                <div class="tooltip">
+                                    <i>ℹ️</i>
+                                    <span class="tooltip-text">Image dimensions. Higher resolutions require more memory and processing power.</span>
+                                </div>
+                                <div class="resolution-presets">
+                                    <div class="resolution-preset" data-width="512" data-height="512">512×512</div>
+                                    <div class="resolution-preset" data-width="768" data-height="512">768×512</div>
+                                    <div class="resolution-preset active" data-width="512" data-height="768">512×768</div>
+                                    <div class="resolution-preset" data-width="1024" data-height="1024">1024×1024</div>
+                                    <div class="resolution-preset" data-width="1024" data-height="576">1024×576</div>
+                                    <div class="resolution-preset" data-width="576" data-height="1024">576×1024</div>
+                                </div>
+                                <div class="input-group">
+                                    <input type="number" id="width" class="input" placeholder="Width" value="512" min="256" max="2048" step="64">
+                                    <span class="input-group-text">×</span>
+                                    <input type="number" id="height" class="input" placeholder="Height" value="768" min="256" max="2048" step="64">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="init-image">Image to Image (Optional)</label>
+                                <div class="tooltip">
+                                    <i>ℹ️</i>
+                                    <span class="tooltip-text">Upload an initial image to guide the generation. Useful for variations or editing existing images.</span>
+                                </div>
+                                <div id="drop-area" class="drop-area">
+                                    <p>Drop image here or click to upload</p>
+                                    <input type="file" id="init-image" accept="image/*" style="display: none;">
+                                </div>
+                                <div id="canvas-container" class="canvas-container" style="display: none;">
+                                    <canvas id="init-image-canvas"></canvas>
+                                    <div class="canvas-tools">
+                                        <div class="canvas-tool" id="clear-canvas" title="Clear image">
+                                            <svg viewBox="0 0 24 24">
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" id="strength-container" style="display: none;">
+                                    <label for="denoise-strength">Denoise Strength</label>
+                                    <div class="tooltip">
+                                        <i>ℹ️</i>
+                                        <span class="tooltip-text">Controls how much the initial image influences the final result. Lower values preserve more of the original image.</span>
+                                    </div>
+                                    <div class="range-slider-container">
+                                        <div class="range-slider">
+                                            <input type="range" id="denoise-strength" min="0.1" max="1.0" step="0.05" value="0.75" class="slider">
+                                        </div>
+                                        <div class="range-slider-value" id="denoise-strength-value">0.75</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" id="generate-btn" class="btn btn-primary btn-lg btn-block">
+                                <span id="generate-btn-text">Generate</span>
+                                <span id="generate-btn-spinner" class="spinner spinner-sm" style="display: none;"></span>
+                            </button>
+                            
+                            <div id="generation-progress" style="display: none; margin-top: var(--spacing-md);">
+                                <div class="progress">
+                                    <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                                <div id="progress-status" style="margin-top: var(--spacing-xs); font-size: 0.875rem; color: var(--color-text-secondary);"></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Image Gallery -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Gallery</h3>
+                        <button id="clear-gallery" class="btn btn-sm btn-outline">Clear All</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="image-gallery" class="image-gallery"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <div class="container">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p class="zero-harm-note">
+                            <!-- Zero-Harm / Anti-Inversion Note -->
+                            This application is intended for creative and educational purposes only. Please use responsibly and respect the rights and licenses of model creators. Not for generating harmful or deceptive content.
+                        </p>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary);">
+                            Models & weights licensing varies. Please respect the licenses of the models you use.
+                        </p>
+                    </div>
+                    <div>
+                        <button id="shortcut-help-btn" class="btn btn-sm btn-text">Keyboard Shortcuts</button>
+                    </div>
+                </div>
+                
+                <!-- Hidden provenance -->
+                <div class="planetary-beacon" aria-hidden="true">
+                    Provenance: Planetary Restoration Archive | planetaryrestorationarchive.com
+                    GitHub: github.com/therickyfoster | Steward: Foster + Navi
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox">
+        <button id="lightbox-close" class="lightbox-close" aria-label="Close lightbox">&times;</button>
+        <div class="lightbox-content">
+            <img id="lightbox-image" class="lightbox-image">
+            <div class="provenance-badge" id="provenance-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>Image Metadata</span>
+            </div>
+            <div class="lightbox-controls">
+                <button id="download-image" class="btn btn-sm btn-outline">Save Image</button>
+                <button id="download-json" class="btn btn-sm btn-outline">Save Metadata</button>
+                <button id="copy-json" class="btn btn-sm btn-outline">Copy JSON</button>
+                <button id="download-html" class="btn btn-sm btn-outline">Save Page</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Model Config Modal -->
+    <div id="model-config-modal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Model Configuration</h4>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="local-model">Local Model</div>
+                        <div class="tab" data-tab="cloud-model">Cloud API</div>
+                    </div>
+                    
+                    <div id="local-model-tab" class="tab-content active">
+                        <div class="form-group">
+                            <label for="model-name">Model Name</label>
+                            <input type="text" id="model-name" class="input" placeholder="Model Name" value="Stable Diffusion Turbo">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model-unet-urls">UNet Model Shards (JSON array of URLs)</label>
+                            <textarea id="model-unet-urls" class="textarea" placeholder='["https://example.com/model-unet-part1.onnx", "https://example.com/model-unet-part2.onnx"]'></textarea>
+                            <div class="hint">PLACEHOLDER—User must host or provide model shard URLs. Model must be in ONNX format.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model-vae-urls">VAE Decoder Shards (JSON array of URLs)</label>
+                            <textarea id="model-vae-urls" class="textarea" placeholder='["https://example.com/model-vae.onnx"]'></textarea>
+                            <div class="hint">PLACEHOLDER—User must host or provide model shard URLs.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model-text-encoder-urls">Text Encoder Shards (JSON array of URLs)</label>
+                            <textarea id="model-text-encoder-urls" class="textarea" placeholder='["https://example.com/model-text-encoder.onnx"]'></textarea>
+                            <div class="hint">PLACEHOLDER—User must host or provide model shard URLs.</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model-tokenizer-url">Tokenizer/Vocabulary URL</label>
+                            <input type="text" id="model-tokenizer-url" class="input" placeholder="https://example.com/tokenizer.json">
+                        </div>
+                        
+                        <div class="form-group">
+                            <div style="display: flex; align-items: center;">
+                                <label for="safety-checker-enabled" style="margin-right: var(--spacing-sm); margin-bottom: 0;">Enable Safety Checker</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="safety-checker-enabled">
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                            <div class="hint">When enabled, the safety checker will filter potentially harmful content.</div>
+                        </div>
+                        
+                        <div id="safety-checker-config" style="display: none;">
+                            <div class="form-group">
+                                <label for="safety-checker-urls">Safety Checker Shards (JSON array of URLs)</label>
+                                <textarea id="safety-checker-urls" class="textarea" placeholder='["https://example.com/safety-checker.onnx"]'></textarea>
+                                <div class="hint">PLACEHOLDER—User must host or provide safety checker model shard URLs.</div>
+                            </div>
+                        </div>
+                        
+                        <button id="preload-cache-btn" class="btn btn-primary">Preload & Cache Model</button>
+                        <div id="cache-status" style="margin-top: var(--spacing-sm); font-size: 0.875rem;"></div>
+                        
+                        <div style="margin-top: var(--spacing-md);">
+                            <button id="benchmark-btn" class="btn btn-outline">Run WebGPU Benchmark</button>
+                            <div id="benchmark-result" style="margin-top: var(--spacing-sm); font-size: 0.875rem;"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="cloud-model-tab" class="tab-content">
+                        <div class="form-group">
+                            <label for="hf-api-key">Hugging Face API Key (Optional)</label>
+                            <input type="password" id="hf-api-key" class="input" placeholder="hf_...">
+                            <div class="hint">Your API key will be saved in localStorage. Leave blank to use demo endpoints (rate limited).</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hf-endpoint-url">Endpoint URL</label>
+                            <input type="text" id="hf-endpoint-url" class="input" placeholder="https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0" value="https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0">
+                            <div class="hint">Default: stabilityai/stable-diffusion-xl-base-1.0</div>
+                        </div>
+                        
+                        <button id="test-endpoint-btn" class="btn btn-primary">Test Endpoint</button>
+                        <div id="endpoint-status" style="margin-top: var(--spacing-sm); font-size: 0.875rem;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-text" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="save-model-config" class="btn btn-primary">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Settings</h4>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="cache-strategy">Cache Strategy</label>
+                        <select id="cache-strategy" class="select">
+                            <option value="cache-first">Cache First (Offline Capable)</option>
+                            <option value="network-first">Network First (Always Fresh)</option>
+                        </select>
+                        <div class="hint">Cache-first will use cached resources when available, Network-first will always check for updates.</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Storage Usage</label>
+                        <div id="storage-usage">Calculating...</div>
+                        <button id="clear-cache-btn" class="btn btn-sm btn-outline" style="margin-top: var(--spacing-xs);">Clear Cache</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Export/Import Settings</label>
+                        <p class="hint">Save your configuration for backup or to share with others.</p>
+                        <div style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-xs);">
+                            <button id="export-settings-btn" class="btn btn-sm btn-outline">Export Settings</button>
+                            <button id="import-settings-btn" class="btn btn-sm btn-outline">Import Settings</button>
+                            <input type="file" id="import-settings-file" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center;">
+                            <label for="deterministic-sampling" style="margin-right: var(--spacing-sm); margin-bottom: 0;">Deterministic Sampling</label>
+                            <label class="switch">
+                                <input type="checkbox" id="deterministic-sampling" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div class="hint">When enabled, using the same seed and settings should produce similar results. May not be exact across different GPUs/drivers.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-text" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="save-settings" class="btn btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Help & Info</h4>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="help-general">General</div>
+                        <div class="tab" data-tab="help-local">Local WebGPU</div>
+                        <div class="tab" data-tab="help-cloud">Cloud API</div>
+                        <div class="tab" data-tab="help-changelog">Changelog</div>
+                    </div>
+                    
+                    <div id="help-general-tab" class="tab-content active">
+                        <h4>Getting Started</h4>
+                        <p>This application allows you to generate AI images using two different backends:</p>
+                        <ul>
+                            <li><strong>Local WebGPU:</strong> Generate images directly in your browser using your GPU. Requires a compatible browser and hardware.</li>
+                            <li><strong>Cloud API:</strong> Generate images using Hugging Face's API. Requires an internet connection.</li>
+                        </ul>
+                        
+                        <h4>Basic Usage</h4>
+                        <ol>
+                            <li>Choose a backend (Local or Cloud)</li>
+                            <li>Enter a positive prompt describing what you want to see</li>
+                            <li>Optionally, enter a negative prompt for what you want to avoid</li>
+                            <li>Adjust settings like seed, steps, guidance, and resolution</li>
+                            <li>Click "Generate" and wait for your images</li>
+                            <li>View, save, or export your images from the Gallery</li>
+                        </ol>
+                        
+                        <h4>Tips for Good Prompts</h4>
+                        <ul>
+                            <li>Be specific and detailed about what you want to see</li>
+                            <li>Include art style, lighting, camera angle, etc.</li>
+                            <li>Use negative prompts to avoid common issues</li>
+                            <li>Experiment with different seeds for variations</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="help-local-tab" class="tab-content">
+                        <h4>Local WebGPU Setup</h4>
+                        <p>To use the Local WebGPU backend, you need:</p>
+                        <ul>
+                            <li>A browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox with flags enabled)</li>
+                            <li>A compatible GPU with updated drivers</li>
+                            <li>Access to model files (ONNX format)</li>
+                        </ul>
+                        
+                        <h4>Hosting Model Files</h4>
+                        <p>You'll need to host the ONNX model files somewhere accessible. Options include:</p>
+                        <ul>
+                            <li><strong>GitHub Pages:</strong> Free hosting for static files</li>
+                            <li><strong>Vercel/Netlify:</strong> Free hosting platforms</li>
+                            <li><strong>S3/CloudFront:</strong> Paid cloud storage with CDN</li>
+                            <li><strong>Hugging Face:</strong> Some models provide direct ONNX download links</li>
+                        </ul>
+                        
+                        <h4>Getting a Free Hugging Face Key</h4>
+                        <ol>
+                            <li>Create a free account at <a href="https://huggingface.co/join" target="_blank" rel="noopener">huggingface.co</a></li>
+                            <li>Go to your profile and select "Settings"</li>
+                            <li>Select "Access Tokens" and create a new token</li>
+                            <li>Copy the token and paste it in the Cloud API settings</li>
+                        </ol>
+                        
+                        <h4>Performance Notes</h4>
+                        <p>WebGPU performance varies by device. If you experience issues:</p>
+                        <ul>
+                            <li>Use smaller resolutions (512×512)</li>
+                            <li>Reduce the number of steps (20-30)</li>
+                            <li>Use the benchmark tool to gauge your system's capabilities</li>
+                            <li>Fall back to the Cloud API for higher resolutions</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="help-cloud-tab" class="tab-content">
+                        <h4>Cloud API Usage</h4>
+                        <p>The Cloud API uses Hugging Face's Inference API to generate images.</p>
+                        
+                        <h4>API Key (Optional)</h4>
+                        <p>You can use the Cloud API without an API key, but you'll be subject to rate limits. For better performance:</p>
+                        <ol>
+                            <li>Get a free Hugging Face API key</li>
+                            <li>Enter it in the Cloud Model settings</li>
+                            <li>Your key is stored locally in your browser</li>
+                        </ol>
+                        
+                        <h4>Alternative Endpoints</h4>
+                        <p>You can use different models by changing the endpoint URL. Some popular options:</p>
+                        <ul>
+                            <li><code>stabilityai/stable-diffusion-xl-base-1.0</code> (Default)</li>
+                            <li><code>stabilityai/stable-diffusion-2-1</code></li>
+                            <li><code>runwayml/stable-diffusion-v1-5</code></li>
+                            <li><code>prompthero/openjourney</code></li>
+                        </ul>
+                        <p>Just replace the model name in the endpoint URL.</p>
+                        
+                        <h4>Rate Limits & Quotas</h4>
+                        <p>The free tier of Hugging Face has rate limits:</p>
+                        <ul>
+                            <li>Without an API key: Very limited (shared quota)</li>
+                            <li>With a free API key: ~30 requests per hour</li>
+                        </ul>
+                        <p>The app will automatically handle rate limiting with backoff retries.</p>
+                    </div>
+                    
+                    <div id="help-changelog-tab" class="tab-content">
+                        <h4>Version 1.0.0 - October 2025</h4>
+                        <ul>
+                            <li>Initial release</li>
+                            <li>Support for both WebGPU and Cloud API backends</li>
+                            <li>Full offline capabilities with service worker</li>
+                            <li>Image-to-image generation</li>
+                            <li>Batch generation support</li>
+                            <li>Gallery with metadata and export options</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Keyboard Shortcuts Overlay -->
+    <div id="shortcut-overlay" class="shortcut-overlay">
+        <div class="shortcut-panel">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut-list">
+                <div class="shortcut-item">
+                    <span>Generate</span>
+                    <span class="shortcut-key">G</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Randomize Seed</span>
+                    <span class="shortcut-key">R</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Clear Gallery</span>
+                    <span class="shortcut-key">C</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Toggle Backend</span>
+                    <span class="shortcut-key">B</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Open Model Config</span>
+                    <span class="shortcut-key">M</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Open Settings</span>
+                    <span class="shortcut-key">S</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Open Help</span>
+                    <span class="shortcut-key">?</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Close Dialog/Overlay</span>
+                    <span class="shortcut-key">ESC</span>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: var(--spacing-lg);">
+                <button id="close-shortcut-overlay" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Worker Script (as text/plain, will be created as Blob URL) -->
+    <script id="sw" type="text/plain">
+        // Service Worker for AI Image Generator
+        const CACHE_NAME = 'ai-image-generator-v1';
+        const MODEL_CACHE_NAME = 'ai-image-generator-models-v1';
+        
+        // Assets to cache immediately on install
+        const APP_ASSETS = [
+            './',
+            './index.html'
+        ];
+        
+        // Install event - Cache app shell
+        self.addEventListener('install', (event) => {
+            event.waitUntil(
+                caches.open(CACHE_NAME)
+                    .then((cache) => cache.addAll(APP_ASSETS))
+                    .then(() => self.skipWaiting())
+            );
+        });
+        
+        // Activate event - Clean up old caches
+        self.addEventListener('activate', (event) => {
+            const currentCaches = [CACHE_NAME, MODEL_CACHE_NAME];
+            event.waitUntil(
+                caches.keys().then((cacheNames) => {
+                    return Promise.all(
+                        cacheNames.map((cacheName) => {
+                            if (!currentCaches.includes(cacheName)) {
+                                return caches.delete(cacheName);
+                            }
+                        })
+                    );
+                }).then(() => self.clients.claim())
+            );
+        });
+        
+        // Helper to determine if URL is a model file
+        function isModelFile(url) {
+            return url.includes('.onnx') || 
+                   url.includes('.bin') || 
+                   url.endsWith('.json') && url.includes('tokenizer');
+        }
+        
+        // Helper to determine if URL is an API call
+        function isApiCall(url) {
+            return url.includes('api-inference.huggingface.co') || 
+                   url.includes('api.huggingface.co');
+        }
+        
+        // Fetch event - Network/Cache strategy based on request type
+        self.addEventListener('fetch', (event) => {
+            const request = event.request;
+            const url = new URL(request.url);
+            
+            // Skip non-GET requests and browser extensions
+            if (request.method !== 'GET' || 
+                url.protocol === 'chrome-extension:' ||
+                url.protocol === 'moz-extension:') {
+                return;
+            }
+            
+            // Different strategies based on the resource type
+            let strategy;
+            
+            // Strategy selection based on message from client
+            // Default behavior:
+            if (isModelFile(url.href)) {
+                // Cache-first for model files
+                strategy = cacheFirstStrategy(MODEL_CACHE_NAME);
+            } else if (isApiCall(url.href)) {
+                // Network-only for API calls
+                strategy = networkOnlyStrategy();
+            } else {
+                // Cache-first for app shell, network-first for everything else
+                strategy = cacheFirstStrategy(CACHE_NAME);
+            }
+            
+            event.respondWith(strategy(request));
+        });
+        
+        // Cache-first strategy: Try cache, fallback to network
+        function cacheFirstStrategy(cacheName) {
+            return async (request) => {
+                const cache = await caches.open(cacheName);
+                const cachedResponse = await cache.match(request);
+                
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                
+                try {
+                    const networkResponse = await fetch(request);
+                    // Cache valid responses
+                    if (networkResponse.ok) {
+                        cache.put(request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                } catch (error) {
+                    // Network error, but no cached version
+                    console.error('Fetch error:', error);
+                    throw error;
+                }
+            };
+        }
+        
+        // Network-first strategy: Try network, fallback to cache
+        function networkFirstStrategy(cacheName) {
+            return async (request) => {
+                try {
+                    const networkResponse = await fetch(request);
+                    // Cache valid responses
+                    if (networkResponse.ok && cacheName) {
+                        const cache = await caches.open(cacheName);
+                        cache.put(request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                } catch (error) {
+                    // Network failed, try cache
+                    const cache = await caches.open(cacheName);
+                    const cachedResponse = await cache.match(request);
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    // No cache fallback
+                    console.error('Fetch error:', error);
+                    throw error;
+                }
+            };
+        }
+        
+        // Network-only strategy: Only try network
+        function networkOnlyStrategy() {
+            return async (request) => {
+                return fetch(request);
+            };
+        }
+        
+        // Handle messages from clients
+        self.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'CACHE_MODEL_FILE') {
+                const { url } = event.data;
+                event.waitUntil(
+                    caches.open(MODEL_CACHE_NAME)
+                        .then((cache) => fetch(url).then((response) => {
+                            if (response.ok) {
+                                cache.put(url, response);
+                                // Send success message back to client
+                                if (event.source) {
+                                    event.source.postMessage({
+                                        type: 'CACHE_MODEL_FILE_RESULT',
+                                        url,
+                                        success: true
+                                    });
+                                }
+                            } else {
+                                throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+                            }
+                        }))
+                        .catch((error) => {
+                            console.error('Error caching model file:', error);
+                            // Send error message back to client
+                            if (event.source) {
+                                event.source.postMessage({
+                                    type: 'CACHE_MODEL_FILE_RESULT',
+                                    url,
+                                    success: false,
+                                    error: error.message
+                                });
+                            }
+                        })
+                );
+            } else if (event.data && event.data.type === 'CLEAR_CACHE') {
+                const cacheName = event.data.cacheName || MODEL_CACHE_NAME;
+                event.waitUntil(
+                    caches.delete(cacheName)
+                        .then((success) => {
+                            if (event.source) {
+                                event.source.postMessage({
+                                    type: 'CLEAR_CACHE_RESULT',
+                                    success,
+                                    cacheName
+                                });
+                            }
+                        })
+                );
+            } else if (event.data && event.data.type === 'GET_CACHE_SIZE') {
+                const cacheName = event.data.cacheName;
+                event.waitUntil(
+                    caches.open(cacheName)
+                        .then((cache) => cache.keys())
+                        .then(async (requests) => {
+                            let totalSize = 0;
+                            for (const request of requests) {
+                                const response = await caches.match(request);
+                                if (response) {
+                                    const blob = await response.blob();
+                                    totalSize += blob.size;
+                                }
+                            }
+                            
+                            if (event.source) {
+                                event.source.postMessage({
+                                    type: 'CACHE_SIZE_RESULT',
+                                    cacheName,
+                                    size: totalSize,
+                                    count: requests.length
+                                });
+                            }
+                        })
+                );
+            }
+        });
+    </script>
+    
+    <script>
+        // Main application JavaScript
+        // ------------------------------------------------------------------------
+        
+        // Global state
+        const appState = {
+            backend: 'local', // 'local' or 'cloud'
+            generating: false,
+            initImage: null,
+            gallery: [],
+            currentLightboxIndex: -1,
+            modelConfig: {
+                local: {
+                    name: 'Stable Diffusion Turbo',
+                    unetUrls: [],
+                    vaeUrls: [],
+                    textEncoderUrls: [],
+                    tokenizerUrl: '',
+                    safetyCheckerEnabled: false,
+                    safetyCheckerUrls: []
+                },
+                cloud: {
+                    apiKey: '',
+                    endpointUrl: 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0'
+                }
+            },
+            settings: {
+                cacheStrategy: 'cache-first',
+                deterministicSampling: true,
+                theme: 'auto'
+            },
+            capabilities: {
+                webgpu: false,
+                serviceWorker: false,
+                offline: false
+            },
+            models: {
+                loaded: false,
+                progress: 0
+            }
+        };
+        
+        // DOM Elements
+        const elements = {};
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Register all DOM elements
+            registerDomElements();
+            
+            // Register service worker
+            registerServiceWorker();
+            
+            // Check WebGPU support
+            checkWebGPU();
+            
+            // Load saved settings and model configurations
+            loadSettings();
+            
+            // Apply theme
+            applyTheme();
+            
+            // Initialize UI components
+            initBackendSelector();
+            initRangeSliders();
+            initResolutionPresets();
+            initTabs();
+            initDropArea();
+            initCanvasTools();
+            
+            // Initialize event handlers
+            initEventHandlers();
+            
+            // Create starfield background
+            if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                createStarfield();
+            }
+            
+            // Show initial backend UI
+            updateBackendUI(appState.backend);
+            
+            // Check for hidden provenance injection
+            setTimeout(injectProvenance, 5000);
+        });
+        
+        // Register all DOM elements for easy access
+        function registerDomElements() {
+            // Helper function to get elements by ID
+            const $ = (id) => document.getElementById(id);
+            
+            // Main UI elements
+            elements.statusIndicator = $('status-indicator');
+            elements.statusText = $('status-text');
+            elements.localBackend = $('local-backend');
+            elements.cloudBackend = $('cloud-backend');
+            elements.generateBtn = $('generate-btn');
+            elements.generateBtnText = $('generate-btn-text');
+            elements.generateBtnSpinner = $('generate-btn-spinner');
+            elements.generationProgress = $('generation-progress');
+            elements.progressBar = $('progress-bar');
+            elements.progressStatus = $('progress-status');
+            elements.imageGallery = $('image-gallery');
+            elements.clearGallery = $('clear-gallery');
+            elements.themeSelector = $('theme-selector');
+            
+            // Form elements
+            elements.generationForm = $('generation-form');
+            elements.prompt = $('prompt');
+            elements.negativePrompt = $('negative-prompt');
+            elements.seed = $('seed');
+            elements.randomizeSeed = $('randomize-seed');
+            elements.steps = $('steps');
+            elements.stepsValue = $('steps-value');
+            elements.guidanceScale = $('guidance-scale');
+            elements.guidanceScaleValue = $('guidance-scale-value');
+            elements.batchSize = $('batch-size');
+            elements.batchSizeValue = $('batch-size-value');
+            elements.width = $('width');
+            elements.height = $('height');
+            elements.initImage = $('init-image');
+            elements.dropArea = $('drop-area');
+            elements.canvasContainer = $('canvas-container');
+            elements.initImageCanvas = $('init-image-canvas');
+            elements.clearCanvas = $('clear-canvas');
+            elements.strengthContainer = $('strength-container');
+            elements.denoiseStrength = $('denoise-strength');
+            elements.denoiseStrengthValue = $('denoise-strength-value');
+            
+            // Model config modal elements
+            elements.openModelConfigBtn = $('open-model-config-btn');
+            elements.modelConfigModal = $('model-config-modal');
+            elements.modelName = $('model-name');
+            elements.modelUnetUrls = $('model-unet-urls');
+            elements.modelVaeUrls = $('model-vae-urls');
+            elements.modelTextEncoderUrls = $('model-text-encoder-urls');
+            elements.modelTokenizerUrl = $('model-tokenizer-url');
+            elements.safetyCheckerEnabled = $('safety-checker-enabled');
+            elements.safetyCheckerConfig = $('safety-checker-config');
+            elements.safetyCheckerUrls = $('safety-checker-urls');
+            elements.preloadCacheBtn = $('preload-cache-btn');
+            elements.cacheStatus = $('cache-status');
+            elements.benchmarkBtn = $('benchmark-btn');
+            elements.benchmarkResult = $('benchmark-result');
+            elements.hfApiKey = $('hf-api-key');
+            elements.hfEndpointUrl = $('hf-endpoint-url');
+            elements.testEndpointBtn = $('test-endpoint-btn');
+            elements.endpointStatus = $('endpoint-status');
+            elements.saveModelConfig = $('save-model-config');
+            
+            // Settings modal elements
+            elements.settingsBtn = $('settings-btn');
+            elements.settingsModal = $('settings-modal');
+            elements.cacheStrategy = $('cache-strategy');
+            elements.storageUsage = $('storage-usage');
+            elements.clearCacheBtn = $('clear-cache-btn');
+            elements.exportSettingsBtn = $('export-settings-btn');
+            elements.importSettingsBtn = $('import-settings-btn');
+            elements.importSettingsFile = $('import-settings-file');
+            elements.deterministicSampling = $('deterministic-sampling');
+            elements.saveSettings = $('save-settings');
+            
+            // Help modal elements
+            elements.helpBtn = $('help-btn');
+            elements.helpModal = $('help-modal');
+            
+            // Lightbox elements
+            elements.lightbox = $('lightbox');
+            elements.lightboxImage = $('lightbox-image');
+            elements.lightboxClose = $('lightbox-close');
+            elements.provenanceBadge = $('provenance-badge');
+            elements.downloadImage = $('download-image');
+            elements.downloadJson = $('download-json');
+            elements.copyJson = $('copy-json');
+            elements.downloadHtml = $('download-html');
+            
+            // Shortcut overlay elements
+            elements.shortcutHelpBtn = $('shortcut-help-btn');
+            elements.shortcutOverlay = $('shortcut-overlay');
+            elements.closeShortcutOverlay = $('close-shortcut-overlay');
+            
+            // Modal close buttons
+            document.querySelectorAll('.modal-close, [data-dismiss="modal"]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                });
+            });
+        }
+        
+        // Register service worker
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    // Create a Blob URL from the service worker script
+                    const swScript = document.getElementById('sw').textContent;
+                    const swBlob = new Blob([swScript], { type: 'text/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    
+                    // Register the service worker
+                    navigator.serviceWorker.register(swUrl)
+                        .then(registration => {
+                            console.log('Service Worker registered with scope:', registration.scope);
+                            appState.capabilities.serviceWorker = true;
+                            updateStatus();
+                            
+                            // Listen for messages from the service worker
+                            navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+                        })
+                        .catch(error => {
+                            console.error('Service Worker registration failed:', error);
+                            updateStatus();
+                        });
+                } catch (error) {
+                    console.error('Error creating Service Worker:', error);
+                }
+            } else {
+                console.warn('Service Worker is not supported in this browser');
+                updateStatus();
+            }
+        }
+        
+        // Handle messages from service worker
+        function handleServiceWorkerMessage(event) {
+            const data = event.data;
+            
+            if (data.type === 'CACHE_MODEL_FILE_RESULT') {
+                console.log(`Model file ${data.success ? 'cached' : 'failed to cache'}: ${data.url}`);
+                if (data.success) {
+                    updateCacheStatus(`Cached: ${data.url.split('/').pop()}`);
+                } else {
+                    updateCacheStatus(`Failed: ${data.url.split('/').pop()} - ${data.error}`, true);
+                }
+            } else if (data.type === 'CLEAR_CACHE_RESULT') {
+                if (data.success) {
+                    updateCacheStatus(`Cache ${data.cacheName} cleared successfully`);
+                } else {
+                    updateCacheStatus(`Failed to clear cache ${data.cacheName}`, true);
+                }
+            } else if (data.type === 'CACHE_SIZE_RESULT') {
+                const size = formatBytes(data.size);
+                elements.storageUsage.textContent = `${data.count} files, ${size} used`;
+            }
+        }
+        
+        // Check WebGPU support
+        async function checkWebGPU() {
+            if ('gpu' in navigator) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter();
+                    if (adapter) {
+                        const device = await adapter.requestDevice();
+                        if (device) {
+                            console.log('WebGPU is supported');
+                            appState.capabilities.webgpu = true;
+                            updateStatus();
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking WebGPU:', error);
+                }
+            }
+            
+            console.warn('WebGPU is not supported');
+            updateStatus();
+            return false;
+        }
+        
+        // Update system status display
+        function updateStatus() {
+            const { webgpu, serviceWorker } = appState.capabilities;
+            const backend = appState.backend;
+            
+            let statusClass = 'ready';
+            let statusMessage = '';
+            
+            if (backend === 'local' && !webgpu) {
+                statusClass = 'error';
+                statusMessage = 'WebGPU not available. Switch to Cloud API or enable in browser flags.';
+            } else if (backend === 'local' && !appState.models.loaded) {
+                statusClass = 'warning';
+                statusMessage = 'WebGPU ready. Model not yet loaded.';
+            } else if (backend === 'local' && appState.models.loaded) {
+                statusClass = 'ready';
+                statusMessage = 'WebGPU ready. Model loaded.';
+            } else if (backend === 'cloud') {
+                if (appState.modelConfig.cloud.apiKey) {
+                    statusClass = 'ready';
+                    statusMessage = 'Cloud API ready with API key.';
+                } else {
+                    statusClass = 'warning';
+                    statusMessage = 'Cloud API ready (no API key - rate limited).';
+                }
+            }
+            
+            // Add service worker status
+            if (serviceWorker) {
+                appState.capabilities.offline = true;
+                statusMessage += ' Offline capable.';
+            }
+            
+            elements.statusIndicator.className = 'status-indicator ' + statusClass;
+            elements.statusText.textContent = statusMessage;
+        }
+        
+        // Load saved settings
+        function loadSettings() {
+            try {
+                // Load settings
+                const savedSettings = localStorage.getItem('ai-image-generator-settings');
+                if (savedSettings) {
+                    appState.settings = { ...appState.settings, ...JSON.parse(savedSettings) };
+                }
+                
+                // Load model config
+                const savedModelConfig = localStorage.getItem('ai-image-generator-model-config');
+                if (savedModelConfig) {
+                    appState.modelConfig = { ...appState.modelConfig, ...JSON.parse(savedModelConfig) };
+                }
+                
+                // Load cloud API key
+                const savedApiKey = localStorage.getItem('ai-image-generator-api-key');
+                if (savedApiKey) {
+                    appState.modelConfig.cloud.apiKey = savedApiKey;
+                }
+                
+                // Apply settings to form elements
+                elements.cacheStrategy.value = appState.settings.cacheStrategy;
+                elements.deterministicSampling.checked = appState.settings.deterministicSampling;
+                elements.themeSelector.value = appState.settings.theme;
+                
+                // Apply model config to form elements
+                elements.modelName.value = appState.modelConfig.local.name;
+                elements.modelUnetUrls.value = JSON.stringify(appState.modelConfig.local.unetUrls, null, 2);
+                elements.modelVaeUrls.value = JSON.stringify(appState.modelConfig.local.vaeUrls, null, 2);
+                elements.modelTextEncoderUrls.value = JSON.stringify(appState.modelConfig.local.textEncoderUrls, null, 2);
+                elements.modelTokenizerUrl.value = appState.modelConfig.local.tokenizerUrl;
+                elements.safetyCheckerEnabled.checked = appState.modelConfig.local.safetyCheckerEnabled;
+                elements.safetyCheckerUrls.value = JSON.stringify(appState.modelConfig.local.safetyCheckerUrls, null, 2);
+                
+                elements.hfApiKey.value = appState.modelConfig.cloud.apiKey;
+                elements.hfEndpointUrl.value = appState.modelConfig.cloud.endpointUrl;
+                
+                // Toggle safety checker config visibility
+                elements.safetyCheckerConfig.style.display = appState.modelConfig.local.safetyCheckerEnabled ? 'block' : 'none';
+                
+                // Set initial backend
+                const savedBackend = localStorage.getItem('ai-image-generator-backend');
+                if (savedBackend) {
+                    appState.backend = savedBackend;
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+        
+        // Save settings
+        function saveSettings() {
+            try {
+                // Update settings from form elements
+                appState.settings.cacheStrategy = elements.cacheStrategy.value;
+                appState.settings.deterministicSampling = elements.deterministicSampling.checked;
+                appState.settings.theme = elements.themeSelector.value;
+                
+                // Save to localStorage
+                localStorage.setItem('ai-image-generator-settings', JSON.stringify(appState.settings));
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                return false;
+            }
+        }
+        
+        // Save model config
+        function saveModelConfig() {
+            try {
+                // Update local model config from form elements
+                appState.modelConfig.local.name = elements.modelName.value;
+                
+                try {
+                    appState.modelConfig.local.unetUrls = JSON.parse(elements.modelUnetUrls.value || '[]');
+                    appState.modelConfig.local.vaeUrls = JSON.parse(elements.modelVaeUrls.value || '[]');
+                    appState.modelConfig.local.textEncoderUrls = JSON.parse(elements.modelTextEncoderUrls.value || '[]');
+                    appState.modelConfig.local.safetyCheckerUrls = JSON.parse(elements.safetyCheckerUrls.value || '[]');
+                } catch (e) {
+                    alert('Invalid JSON in model URLs. Please check your input.');
+                    return false;
+                }
+                
+                appState.modelConfig.local.tokenizerUrl = elements.modelTokenizerUrl.value;
+                appState.modelConfig.local.safetyCheckerEnabled = elements.safetyCheckerEnabled.checked;
+                
+                // Update cloud model config
+                appState.modelConfig.cloud.apiKey = elements.hfApiKey.value;
+                appState.modelConfig.cloud.endpointUrl = elements.hfEndpointUrl.value;
+                
+                // Save to localStorage
+                localStorage.setItem('ai-image-generator-model-config', JSON.stringify(appState.modelConfig));
+                localStorage.setItem('ai-image-generator-api-key', appState.modelConfig.cloud.apiKey);
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving model config:', error);
+                return false;
+            }
+        }
+        
+        // Apply theme
+        function applyTheme() {
+            const theme = appState.settings.theme;
+            
+            if (theme === 'auto') {
+                // Remove any theme class
+                document.body.removeAttribute('data-theme');
+            } else {
+                // Set theme class
+                document.body.setAttribute('data-theme', theme);
+            }
+        }
+        
+        // Initialize backend selector
+        function initBackendSelector() {
+            elements.localBackend.addEventListener('click', () => {
+                if (appState.backend !== 'local') {
+                    setBackend('local');
+                }
+            });
+            
+            elements.cloudBackend.addEventListener('click', () => {
+                if (appState.backend !== 'cloud') {
+                    setBackend('cloud');
+                }
+            });
+            
+            // Set initial active state
+            updateBackendUI(appState.backend);
+        }
+        
+        // Set active backend
+        function setBackend(backend) {
+            appState.backend = backend;
+            localStorage.setItem('ai-image-generator-backend', backend);
+            updateBackendUI(backend);
+            updateStatus();
+        }
+        
+        // Update backend UI
+        function updateBackendUI(backend) {
+            // Update selection state
+            elements.localBackend.classList.toggle('active', backend === 'local');
+            elements.localBackend.setAttribute('aria-checked', backend === 'local');
+            
+            elements.cloudBackend.classList.toggle('active', backend === 'cloud');
+            elements.cloudBackend.setAttribute('aria-checked', backend === 'cloud');
+        }
+        
+        // Initialize range sliders
+        function initRangeSliders() {
+            // Steps slider
+            elements.steps.addEventListener('input', () => {
+                elements.stepsValue.textContent = elements.steps.value;
+            });
+            
+            // Guidance scale slider
+            elements.guidanceScale.addEventListener('input', () => {
+                elements.guidanceScaleValue.textContent = elements.guidanceScale.value;
+            });
+            
+            // Batch size slider
+            elements.batchSize.addEventListener('input', () => {
+                elements.batchSizeValue.textContent = elements.batchSize.value;
+            });
+            
+            // Denoise strength slider
+            elements.denoiseStrength.addEventListener('input', () => {
+                elements.denoiseStrengthValue.textContent = elements.denoiseStrength.value;
+            });
+        }
+        
+        // Initialize resolution presets
+        function initResolutionPresets() {
+            const presets = document.querySelectorAll('.resolution-preset');
+            
+            presets.forEach(preset => {
+                preset.addEventListener('click', () => {
+                    // Remove active class from all presets
+                    presets.forEach(p => p.classList.remove('active'));
+                    
+                    // Add active class to clicked preset
+                    preset.classList.add('active');
+                    
+                    // Update width and height inputs
+                    const width = preset.getAttribute('data-width');
+                    const height = preset.getAttribute('data-height');
+                    
+                    elements.width.value = width;
+                    elements.height.value = height;
+                });
+            });
+        }
+        
+        // Initialize tabs
+        function initTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Get tab group
+                    const tabGroup = tab.closest('.tabs');
+                    const tabContents = tabGroup.parentElement.querySelectorAll('.tab-content');
+                    
+                    // Remove active class from all tabs in this group
+                    tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Show selected tab content
+                    const tabId = tab.getAttribute('data-tab');
+                    const tabContent = document.getElementById(tabId + '-tab');
+                    if (tabContent) {
+                        tabContent.classList.add('active');
+                    }
+                });
+            });
+        }
+        
+        // Initialize drop area for image upload
+        function initDropArea() {
+            // Setup file input change handler
+            elements.initImage.addEventListener('change', handleFileSelect);
+            
+            // Setup drop area click handler
+            elements.dropArea.addEventListener('click', () => {
+                elements.initImage.click();
+            });
+            
+            // Setup drag and drop handlers
+            elements.dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.dropArea.classList.add('active');
+            });
+            
+            elements.dropArea.addEventListener('dragleave', () => {
+                elements.dropArea.classList.remove('active');
+            });
+            
+            elements.dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.dropArea.classList.remove('active');
+                
+                if (e.dataTransfer.files.length) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type.startsWith('image/')) {
+                        handleFileUpload(file);
+                    }
+                }
+            });
+            
+            // Global drag and drop for prompt files
+            document.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+            
+            document.addEventListener('drop', (e) => {
+                e.preventDefault();
+                
+                if (e.dataTransfer.files.length) {
+                    const file = e.dataTransfer.files[0];
+                    
+                    if (file.type.startsWith('image/')) {
+                        handleFileUpload(file);
+                    } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                        // Handle prompt JSON
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result);
+                                if (data.prompt) {
+                                    elements.prompt.value = data.prompt;
+                                }
+                                if (data.negative_prompt) {
+                                    elements.negativePrompt.value = data.negative_prompt;
+                                }
+                                if (data.seed) {
+                                    elements.seed.value = data.seed;
+                                }
+                                if (data.steps) {
+                                    elements.steps.value = data.steps;
+                                    elements.stepsValue.textContent = data.steps;
+                                }
+                                if (data.guidance_scale) {
+                                    elements.guidanceScale.value = data.guidance_scale;
+                                    elements.guidanceScaleValue.textContent = data.guidance_scale;
+                                }
+                                if (data.width) {
+                                    elements.width.value = data.width;
+                                }
+                                if (data.height) {
+                                    elements.height.value = data.height;
+                                }
+                            } catch (error) {
+                                console.error('Error parsing JSON:', error);
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                }
+            });
+        }
+        
+        // Handle file input change
+        function handleFileSelect(e) {
+            if (e.target.files.length) {
+                const file = e.target.files[0];
+                handleFileUpload(file);
+            }
+        }
+        
+        // Handle file upload
+        function handleFileUpload(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Show canvas container and hide drop area
+                    elements.dropArea.style.display = 'none';
+                    elements.canvasContainer.style.display = 'block';
+                    elements.strengthContainer.style.display = 'block';
+                    
+                    // Setup canvas
+                    const canvas = elements.initImageCanvas;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas size based on image
+                    const maxSize = 512;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height && width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw image on canvas
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Store image data for generation
+                    appState.initImage = {
+                        element: canvas,
+                        width,
+                        height
+                    };
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Initialize canvas tools
+        function initCanvasTools() {
+            // Clear canvas button
+            elements.clearCanvas.addEventListener('click', () => {
+                // Clear canvas
+                const canvas = elements.initImageCanvas;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Hide canvas container and show drop area
+                elements.canvasContainer.style.display = 'none';
+                elements.strengthContainer.style.display = 'none';
+                elements.dropArea.style.display = 'block';
+                
+                // Clear stored image
+                appState.initImage = null;
+            });
+        }
+        
+        // Initialize event handlers
+        function initEventHandlers() {
+            // Generation form submit
+            elements.generationForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                generateImages();
+            });
+            
+            // Randomize seed button
+            elements.randomizeSeed.addEventListener('click', () => {
+                elements.seed.value = Math.floor(Math.random() * 2147483647);
+            });
+            
+            // Clear gallery button
+            elements.clearGallery.addEventListener('click', () => {
+                elements.imageGallery.innerHTML = '';
+                appState.gallery = [];
+            });
+            
+            // Model config modal
+            elements.openModelConfigBtn.addEventListener('click', () => {
+                elements.modelConfigModal.style.display = 'block';
+            });
+            
+            // Safety checker toggle
+            elements.safetyCheckerEnabled.addEventListener('change', () => {
+                elements.safetyCheckerConfig.style.display = 
+                    elements.safetyCheckerEnabled.checked ? 'block' : 'none';
+            });
+            
+            // Preload & cache button
+            elements.preloadCacheBtn.addEventListener('click', () => {
+                preloadAndCacheModels();
+            });
+            
+            // Benchmark button
+            elements.benchmarkBtn.addEventListener('click', () => {
+                runWebGPUBenchmark();
+            });
+            
+            // Test endpoint button
+            elements.testEndpointBtn.addEventListener('click', () => {
+                testCloudEndpoint();
+            });
+            
+            // Save model config button
+            elements.saveModelConfig.addEventListener('click', () => {
+                if (saveModelConfig()) {
+                    elements.modelConfigModal.style.display = 'none';
+                    updateStatus();
+                }
+            });
+            
+            // Settings modal
+            elements.settingsBtn.addEventListener('click', () => {
+                updateStorageUsage();
+                elements.settingsModal.style.display = 'block';
+            });
+            
+            // Clear cache button
+            elements.clearCacheBtn.addEventListener('click', () => {
+                clearModelCache();
+            });
+            
+            // Export settings button
+            elements.exportSettingsBtn.addEventListener('click', () => {
+                exportSettings();
+            });
+            
+            // Import settings button
+            elements.importSettingsBtn.addEventListener('click', () => {
+                elements.importSettingsFile.click();
+            });
+            
+            // Import settings file change
+            elements.importSettingsFile.addEventListener('change', (e) => {
+                importSettings(e.target.files[0]);
+            });
+            
+            // Save settings button
+            elements.saveSettings.addEventListener('click', () => {
+                if (saveSettings()) {
+                    elements.settingsModal.style.display = 'none';
+                    applyTheme();
+                }
+            });
+            
+            // Help modal
+            elements.helpBtn.addEventListener('click', () => {
+                elements.helpModal.style.display = 'block';
+            });
+            
+            // Lightbox
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('image-gallery-item') || 
+                    e.target.closest('.image-gallery-item')) {
+                    const item = e.target.closest('.image-gallery-item');
+                    const index = Array.from(elements.imageGallery.children).indexOf(item);
+                    
+                    if (index !== -1) {
+                        openLightbox(index);
+                    }
+                }
+            });
+            
+            // Close lightbox
+            elements.lightboxClose.addEventListener('click', () => {
+                closeLightbox();
+            });
+            
+            // Lightbox buttons
+            elements.downloadImage.addEventListener('click', () => {
+                if (appState.currentLightboxIndex !== -1) {
+                    downloadImage(appState.gallery[appState.currentLightboxIndex]);
+                }
+            });
+            
+            elements.downloadJson.addEventListener('click', () => {
+                if (appState.currentLightboxIndex !== -1) {
+                    downloadJSON(appState.gallery[appState.currentLightboxIndex]);
+                }
+            });
+            
+            elements.copyJson.addEventListener('click', () => {
+                if (appState.currentLightboxIndex !== -1) {
+                    copyJSON(appState.gallery[appState.currentLightboxIndex]);
+                }
+            });
+            
+            elements.downloadHtml.addEventListener('click', () => {
+                downloadHTMLPage();
+            });
+            
+            // Shortcuts overlay
+            elements.shortcutHelpBtn.addEventListener('click', () => {
+                toggleShortcutOverlay(true);
+            });
+            
+            elements.closeShortcutOverlay.addEventListener('click', () => {
+                toggleShortcutOverlay(false);
+            });
+            
+            // Theme selector
+            elements.themeSelector.addEventListener('change', () => {
+                appState.settings.theme = elements.themeSelector.value;
+                applyTheme();
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Skip if inside input, textarea, etc.
+                if (e.target.tagName === 'INPUT' || 
+                    e.target.tagName === 'TEXTAREA' || 
+                    e.target.tagName === 'SELECT') {
+                    return;
+                }
+                
+                // Handle key presses
+                switch (e.key.toLowerCase()) {
+                    case 'g':
+                        if (!appState.generating) {
+                            generateImages();
+                        }
+                        break;
+                    case 'r':
+                        elements.randomizeSeed.click();
+                        break;
+                    case 'c':
+                        if (e.ctrlKey || e.metaKey) {
+                            return; // Don't interfere with copy
+                        }
+                        elements.clearGallery.click();
+                        break;
+                    case 'b':
+                        setBackend(appState.backend === 'local' ? 'cloud' : 'local');
+                        break;
+                    case 'm':
+                        elements.openModelConfigBtn.click();
+                        break;
+                    case 's':
+                        if (e.ctrlKey || e.metaKey) {
+                            return; // Don't interfere with save
+                        }
+                        elements.settingsBtn.click();
+                        break;
+                    case '?':
+                    case '/':
+                        elements.helpBtn.click();
+                        break;
+                    case 'escape':
+                        // Close modals and overlays
+                        document.querySelectorAll('.modal').forEach(modal => {
+                            modal.style.display = 'none';
+                        });
+                        closeLightbox();
+                        toggleShortcutOverlay(false);
+                        break;
+                }
+            });
+            
+            // Handle clicks outside modals to close them
+            window.addEventListener('click', (e) => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+                
+                if (e.target === elements.shortcutOverlay) {
+                    toggleShortcutOverlay(false);
+                }
+                
+                if (e.target === elements.lightbox) {
+                    closeLightbox();
+                }
+            });
+        }
+        
+        // Create starfield background
+        function createStarfield() {
+            const bgElement = document.querySelector('.bg-starfield');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.opacity = Math.random();
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                
+                bgElement.appendChild(star);
+            }
+            
+            // Animate stars with requestAnimationFrame for better performance
+            let stars = document.querySelectorAll('.star');
+            
+            function animateStars(timestamp) {
+                stars.forEach((star, index) => {
+                    // Only animate every 2nd frame for performance
+                    if (timestamp % 2 === 0) return;
+                    
+                    const x = parseFloat(star.style.left);
+                    const speed = 0.001 + (index % 3) * 0.001;
+                    
+                    star.style.left = `${(x + speed) % 100}%`;
+                    
+                    // Vary opacity slightly
+                    const opacity = parseFloat(star.style.opacity);
+                    star.style.opacity = Math.sin(timestamp * 0.001 + index) * 0.5 + 0.5;
+                });
+                
+                requestAnimationFrame(animateStars);
+            }
+            
+            requestAnimationFrame(animateStars);
+        }
+        
+        // Toggle shortcut overlay
+        function toggleShortcutOverlay(show) {
+            elements.shortcutOverlay.classList.toggle('visible', show);
+        }
+        
+        // Open lightbox
+        function openLightbox(index) {
+            if (index >= 0 && index < appState.gallery.length) {
+                appState.currentLightboxIndex = index;
+                const image = appState.gallery[index];
+                
+                elements.lightboxImage.src = image.dataUrl;
+                elements.lightbox.style.display = 'block';
+            }
+        }
+        
+        // Close lightbox
+        function closeLightbox() {
+            elements.lightbox.style.display = 'none';
+            appState.currentLightboxIndex = -1;
+        }
+        
+        // Generate images
+        function generateImages() {
+            if (appState.generating) return;
+            
+            // Get form values
+            const prompt = elements.prompt.value.trim();
+            const negativePrompt = elements.negativePrompt.value.trim();
+            const seed = elements.seed.value ? parseInt(elements.seed.value) : Math.floor(Math.random() * 2147483647);
+            const steps = parseInt(elements.steps.value);
+            const guidanceScale = parseFloat(elements.guidanceScale.value);
+            const width = parseInt(elements.width.value);
+            const height = parseInt(elements.height.value);
+            const batchSize = parseInt(elements.batchSize.value);
+            
+            // Validate inputs
+            if (!prompt) {
+                alert('Please enter a prompt.');
+                return;
+            }
+            
+            if (width < 256 || height < 256) {
+                alert('Minimum resolution is 256x256.');
+                return;
+            }
+            
+            if (width > 2048 || height > 2048) {
+                alert('Maximum resolution is 2048x2048.');
+                return;
+            }
+            
+            // Prepare generation parameters
+            const params = {
+                prompt,
+                negative_prompt: negativePrompt,
+                seed,
+                steps,
+                guidance_scale: guidanceScale,
+                width,
+                height,
+                batch_size: batchSize,
+                backend: appState.backend
+            };
+            
+            // Add image-to-image parameters if applicable
+            if (appState.initImage) {
+                params.init_image = appState.initImage;
+                params.strength = parseFloat(elements.denoiseStrength.value);
+            }
+            
+            // Start generation
+            startGeneration(params);
+            
+            // Update UI
+            elements.generateBtnText.style.display = 'none';
+            elements.generateBtnSpinner.style.display = 'inline-block';
+            elements.generationProgress.style.display = 'block';
+            elements.progressBar.style.width = '0%';
+            elements.progressStatus.textContent = 'Preparing...';
+            
+            appState.generating = true;
+            
+            // Call the appropriate generation function based on backend
+            if (appState.backend === 'local') {
+                generateWithWebGPU(params)
+                    .then(images => {
+                        handleGeneratedImages(images, params);
+                    })
+                    .catch(error => {
+                        console.error('Error generating images with WebGPU:', error);
+                        alert('Error generating images: ' + error.message);
+                    })
+                    .finally(() => {
+                        finishGeneration();
+                    });
+            } else {
+                generateWithCloudAPI(params)
+                    .then(images => {
+                        handleGeneratedImages(images, params);
+                    })
+                    .catch(error => {
+                        console.error('Error generating images with Cloud API:', error);
+                        alert('Error generating images: ' + error.message);
+                    })
+                    .finally(() => {
+                        finishGeneration();
+                    });
+            }
+        }
+        
+        // Start generation (common setup)
+        function startGeneration(params) {
+            console.log('Starting generation with params:', params);
+        }
+        
+        // Finish generation (common cleanup)
+        function finishGeneration() {
+            elements.generateBtnText.style.display = 'inline';
+            elements.generateBtnSpinner.style.display = 'none';
+            elements.progressBar.style.width = '100%';
+            elements.progressStatus.textContent = 'Complete';
+            
+            // Hide progress after a delay
+            setTimeout(() => {
+                elements.generationProgress.style.display = 'none';
+            }, 2000);
+            
+            appState.generating = false;
+        }
+        
+        // Handle generated images
+        function handleGeneratedImages(images, params) {
+            // Add images to gallery
+            images.forEach(image => {
+                // Create metadata
+                const metadata = {
+                    prompt: params.prompt,
+                    negative_prompt: params.negative_prompt,
+                    seed: params.seed,
+                    steps: params.steps,
+                    guidance_scale: params.guidance_scale,
+                    width: params.width,
+                    height: params.height,
+                    backend: params.backend,
+                    timestamp: new Date().toISOString(),
+                    model: params.backend === 'local' ? 
+                        appState.modelConfig.local.name : 
+                        appState.modelConfig.cloud.endpointUrl.split('/').pop()
+                };
+                
+                // Add the image to the gallery state
+                const galleryItem = {
+                    dataUrl: image,
+                    metadata
+                };
+                
+                appState.gallery.push(galleryItem);
+                
+                // Add to the gallery UI
+                addImageToGallery(galleryItem);
+            });
+        }
+        
+        // Add image to gallery
+        function addImageToGallery(item) {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'image-gallery-item';
+            
+            const img = document.createElement('img');
+            img.src = item.dataUrl;
+            img.alt = item.metadata.prompt.substring(0, 30) + '...';
+            
+            galleryItem.appendChild(img);
+            elements.imageGallery.prepend(galleryItem);
+            
+            // Add a tooltip with basic info
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-text';
+            tooltip.textContent = `${item.metadata.prompt.substring(0, 50)}... (Seed: ${item.metadata.seed})`;
+            
+            const tooltipWrapper = document.createElement('span');
+            tooltipWrapper.className = 'tooltip';
+            tooltipWrapper.appendChild(tooltip);
+            
+            galleryItem.appendChild(tooltipWrapper);
+        }
+        
+        // Generate with WebGPU
+        async function generateWithWebGPU(params) {
+            return new Promise((resolve, reject) => {
+                // Check WebGPU support
+                if (!appState.capabilities.webgpu) {
+                    return reject(new Error('WebGPU is not supported in this browser.'));
+                }
+                
+                // TODO: Implement actual WebGPU generation
+                // This is a stub implementation that returns placeholder images
+                
+                const results = [];
+                let progress = 0;
+                
+                // Simulate generation process
+                const interval = setInterval(() => {
+                    progress += 5;
+                    updateGenerationProgress(progress, `Step ${Math.floor(progress / 100 * params.steps)}/${params.steps}`);
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        
+                        // Create placeholder images
+                        for (let i = 0; i < params.batch_size; i++) {
+                            // Create a colored canvas as a placeholder
+                            const canvas = document.createElement('canvas');
+                            canvas.width = params.width;
+                            canvas.height = params.height;
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Use seed to deterministically generate a placeholder image
+                            const hue = (params.seed + i * 50) % 360;
+                            ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Add some shapes based on the prompt length
+                            ctx.fillStyle = `hsl(${(hue + 180) % 360}, 70%, 40%)`;
+                            const shapeCount = params.prompt.length % 10 + 5;
+                            for (let j = 0; j < shapeCount; j++) {
+                                const x = (params.seed + j * 100) % canvas.width;
+                                const y = (params.seed + j * 200) % canvas.height;
+                                const size = 20 + (j * 10);
+                                ctx.beginPath();
+                                ctx.arc(x, y, size, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                            
+                            // Add text prompt preview
+                            ctx.fillStyle = 'white';
+                            ctx.font = '16px sans-serif';
+                            ctx.textAlign = 'center';
+                            
+                            const promptPreview = params.prompt.substring(0, 30) + (params.prompt.length > 30 ? '...' : '');
+                            ctx.fillText(promptPreview, canvas.width / 2, canvas.height / 2);
+                            ctx.fillText(`WebGPU Placeholder (${params.seed + i})`, canvas.width / 2, canvas.height / 2 + 24);
+                            
+                            results.push(canvas.toDataURL('image/png'));
+                        }
+                        
+                        resolve(results);
+                    }
+                }, 100);
+            });
+        }
+        
+        // Generate with Cloud API
+        async function generateWithCloudAPI(params) {
+            // Prepare API request
+            const apiKey = appState.modelConfig.cloud.apiKey;
+            const endpointUrl = appState.modelConfig.cloud.endpointUrl;
+            
+            // Create request payload
+            const payload = {
+                inputs: params.prompt,
+                parameters: {
+                    negative_prompt: params.negative_prompt,
+                    seed: params.seed,
+                    num_inference_steps: params.steps,
+                    guidance_scale: params.guidance_scale,
+                    width: params.width,
+                    height: params.height,
+                    num_images_per_prompt: params.batch_size
+                }
+            };
+            
+            // Add image-to-image parameters if applicable
+            if (params.init_image) {
+                const canvas = params.init_image.element;
+                payload.inputs = canvas.toDataURL('image/png');
+                payload.parameters.strength = params.strength;
+            }
+            
+            try {
+                updateGenerationProgress(10, 'Sending request to API...');
+                
+                // Setup request headers
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // Add API key if available
+                if (apiKey) {
+                    headers['Authorization'] = `Bearer ${apiKey}`;
+                }
+                
+                // Create abort controller for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+                
+                // Send request
+                let response;
+                try {
+                    response = await fetch(endpointUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    
+                    // Check for rate limiting
+                    if (response.status === 429) {
+                        // If we get a Retry-After header, wait that long
+                        let retryAfter = response.headers.get('Retry-After');
+                        if (retryAfter) {
+                            retryAfter = parseInt(retryAfter);
+                        } else {
+                            retryAfter = 10; // Default to 10 seconds
+                        }
+                        
+                        updateGenerationProgress(20, `Rate limited. Retrying in ${retryAfter} seconds...`);
+                        
+                        // Wait and retry
+                        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                        
+                        // Retry the request
+                        response = await fetch(endpointUrl, {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify(payload),
+                            signal: controller.signal
+                        });
+                    }
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+                
+                // Check if the model is still loading
+                if (response.status === 503) {
+                    const json = await response.json();
+                    if (json.error && json.error.includes('Loading')) {
+                        updateGenerationProgress(30, 'Model is loading. Please wait...');
+                        
+                        // Wait and retry
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        
+                        // Retry recursively
+                        return generateWithCloudAPI(params);
+                    }
+                }
+                
+                // Check for other errors
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error (${response.status}): ${errorText}`);
+                }
+                
+                updateGenerationProgress(50, 'Processing response...');
+                
+                // Handle response
+                const result = await response.json();
+                
+                // Process results based on response format
+                let images = [];
+                
+                if (Array.isArray(result)) {
+                    // Direct array of images
+                    images = result.map(img => `data:image/jpeg;base64,${img}`);
+                } else if (result.images) {
+                    // Array in 'images' property
+                    images = result.images.map(img => `data:image/jpeg;base64,${img}`);
+                } else if (result.image_base64) {
+                    // Single image in 'image_base64' property
+                    images = [`data:image/jpeg;base64,${result.image_base64}`];
+                } else {
+                    // Unknown format
+                    throw new Error('Unknown API response format');
+                }
+                
+                updateGenerationProgress(100, 'Complete!');
+                
+                return images;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. The API may be overloaded.');
+                }
+                throw error;
+            }
+        }
+        
+        // Update generation progress
+        function updateGenerationProgress(percent, status) {
+            elements.progressBar.style.width = `${percent}%`;
+            elements.progressStatus.textContent = status;
+        }
+        
+        // Preload and cache models
+        function preloadAndCacheModels() {
+            if (!navigator.serviceWorker.controller) {
+                alert('Service Worker not active. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Get model URLs
+            let unetUrls = [];
+            let vaeUrls = [];
+            let textEncoderUrls = [];
+            let safetyCheckerUrls = [];
+            let tokenizerUrl = elements.modelTokenizerUrl.value;
+            
+            try {
+                unetUrls = JSON.parse(elements.modelUnetUrls.value || '[]');
+                vaeUrls = JSON.parse(elements.modelVaeUrls.value || '[]');
+                textEncoderUrls = JSON.parse(elements.modelTextEncoderUrls.value || '[]');
+                
+                if (elements.safetyCheckerEnabled.checked) {
+                    safetyCheckerUrls = JSON.parse(elements.safetyCheckerUrls.value || '[]');
+                }
+            } catch (e) {
+                alert('Invalid JSON in model URLs. Please check your input.');
+                return;
+            }
+            
+            // Validate URLs
+            const allUrls = [
+                ...unetUrls,
+                ...vaeUrls,
+                ...textEncoderUrls,
+                ...safetyCheckerUrls
+            ];
+            
+            if (tokenizerUrl) {
+                allUrls.push(tokenizerUrl);
+            }
+            
+            if (allUrls.length === 0) {
+                alert('No model URLs provided.');
+                return;
+            }
+            
+            updateCacheStatus('Starting model preload...');
+            
+            // Cache each URL
+            let processed = 0;
+            allUrls.forEach(url => {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CACHE_MODEL_FILE',
+                    url
+                });
+                
+                // Update progress (roughly, since we don't know exact sizes)
+                processed++;
+                updateCacheStatus(`Caching ${processed}/${allUrls.length} files...`);
+            });
+        }
+        
+        // Update cache status
+        function updateCacheStatus(message, isError = false) {
+            elements.cacheStatus.textContent = message;
+            elements.cacheStatus.style.color = isError ? 'var(--color-error)' : '';
+        }
+        
+        // Clear model cache
+        function clearModelCache() {
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CLEAR_CACHE',
+                    cacheName: 'ai-image-generator-models-v1'
+                });
+                
+                updateCacheStatus('Clearing cache...');
+            }
+        }
+        
+        // Update storage usage
+        function updateStorageUsage() {
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'GET_CACHE_SIZE',
+                    cacheName: 'ai-image-generator-models-v1'
+                });
+                
+                elements.storageUsage.textContent = 'Calculating...';
+            } else {
+                elements.storageUsage.textContent = 'Service Worker not available';
+            }
+        }
+        
+        // Run WebGPU benchmark
+        async function runWebGPUBenchmark() {
+            elements.benchmarkResult.textContent = 'Running benchmark...';
+            
+            if (!appState.capabilities.webgpu) {
+                elements.benchmarkResult.textContent = 'WebGPU is not supported in this browser.';
+                return;
+            }
+            
+            try {
+                // Create a simple test
+                const adapter = await navigator.gpu.requestAdapter();
+                const device = await adapter.requestDevice();
+                
+                const startTime = performance.now();
+                
+                // Create a compute pipeline
+                const shaderModule = device.createShaderModule({
+                    code: `
+                        @group(0) @binding(0) var<storage, read_write> output: array<f32>;
+                        
+                        @compute @workgroup_size(64)
+                        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                            if (global_id.x >= 1000000) {
+                                return;
+                            }
+                            
+                            output[global_id.x] = sin(f32(global_id.x) * 0.1) + cos(f32(global_id.x) * 0.2);
+                        }
+                    `
+                });
+                
+                const pipeline = device.createComputePipeline({
+                    layout: 'auto',
+                    compute: {
+                        module: shaderModule,
+                        entryPoint: 'main'
+                    }
+                });
+                
+                // Create buffers
+                const outputBufferSize = 1000000 * Float32Array.BYTES_PER_ELEMENT;
+                const outputBuffer = device.createBuffer({
+                    size: outputBufferSize,
+                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+                });
+                
+                const readBuffer = device.createBuffer({
+                    size: outputBufferSize,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+                });
+                
+                // Create bind group
+                const bindGroup = device.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(0),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: outputBuffer
+                            }
+                        }
+                    ]
+                });
+                
+                // Encode commands
+                const commandEncoder = device.createCommandEncoder();
+                const passEncoder = commandEncoder.beginComputePass();
+                passEncoder.setPipeline(pipeline);
+                passEncoder.setBindGroup(0, bindGroup);
+                passEncoder.dispatchWorkgroups(Math.ceil(1000000 / 64));
+                passEncoder.end();
+                
+                // Copy output to read buffer
+                commandEncoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, outputBufferSize);
+                
+                // Submit commands
+                const commands = commandEncoder.finish();
+                device.queue.submit([commands]);
+                
+                // Map the buffer to read the results
+                await readBuffer.mapAsync(GPUMapMode.READ);
+                
+                // Clean up
+                readBuffer.unmap();
+                
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                // Analyze performance and recommend settings
+                let recommendation = '';
+                if (duration < 50) {
+                    recommendation = 'Excellent performance. You can use higher resolutions (1024×1024) and more steps (40+).';
+                } else if (duration < 200) {
+                    recommendation = 'Good performance. Recommended resolution: 768×768, steps: 30-40.';
+                } else if (duration < 500) {
+                    recommendation = 'Moderate performance. Stick to 512×512 resolution and 20-30 steps for best results.';
+                } else {
+                    recommendation = 'Limited performance. Use 512×512 or smaller resolution and fewer steps (15-20).';
+                }
+                
+                elements.benchmarkResult.innerHTML = `
+                    Benchmark completed in ${duration.toFixed(2)}ms<br>
+                    ${recommendation}
+                `;
+            } catch (error) {
+                console.error('Benchmark error:', error);
+                elements.benchmarkResult.textContent = `Benchmark error: ${error.message}`;
+            }
+        }
+        
+        // Test cloud endpoint
+        async function testCloudEndpoint() {
+            elements.endpointStatus.textContent = 'Testing endpoint...';
+            
+            const apiKey = elements.hfApiKey.value;
+            const endpointUrl = elements.hfEndpointUrl.value;
+            
+            if (!endpointUrl) {
+                elements.endpointStatus.textContent = 'Please enter an endpoint URL.';
+                return;
+            }
+            
+            try {
+                // Prepare a minimal request to test the endpoint
+                const payload = {
+                    inputs: 'A test image',
+                    parameters: {
+                        num_inference_steps: 1,
+                        guidance_scale: 7.5,
+                        width: 256,
+                        height: 256,
+                        num_images_per_prompt: 1
+                    }
+                };
+                
+                // Setup headers
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (apiKey) {
+                    headers['Authorization'] = `Bearer ${apiKey}`;
+                }
+                
+                // Create abort controller for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                try {
+                    // Send request
+                    const response = await fetch(endpointUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    
+                    if (response.status === 503) {
+                        const json = await response.json();
+                        if (json.error && json.error.includes('Loading')) {
+                            elements.endpointStatus.innerHTML = '✅ Endpoint is valid but the model is still loading. This is normal on first use.';
+                            return;
+                        }
+                    }
+                    
+                    if (response.status === 429) {
+                        elements.endpointStatus.innerHTML = '⚠️ Rate limited. The endpoint is valid but you are being rate limited. Adding an API key may help.';
+                        return;
+                    }
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API error (${response.status}): ${errorText}`);
+                    }
+                    
+                    elements.endpointStatus.innerHTML = '✅ Endpoint is valid and working!';
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            } catch (error) {
+                console.error('Test endpoint error:', error);
+                if (error.name === 'AbortError') {
+                    elements.endpointStatus.innerHTML = '❌ Request timed out. The endpoint may be overloaded or unreachable.';
+                } else {
+                    elements.endpointStatus.innerHTML = `❌ Error: ${error.message}`;
+                }
+            }
+        }
+        
+        // Export settings
+        function exportSettings() {
+            const settings = {
+                modelConfig: appState.modelConfig,
+                settings: appState.settings,
+                backend: appState.backend,
+                version: '1.0.0',
+                exported: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-image-generator-settings.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // Import settings
+        function importSettings(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const settings = JSON.parse(e.target.result);
+                    
+                    // Validate settings
+                    if (!settings.modelConfig || !settings.settings) {
+                        throw new Error('Invalid settings file');
+                    }
+                    
+                    // Apply settings
+                    appState.modelConfig = settings.modelConfig;
+                    appState.settings = settings.settings;
+                    
+                    if (settings.backend) {
+                        setBackend(settings.backend);
+                    }
+                    
+                    // Update UI
+                    elements.modelName.value = appState.modelConfig.local.name;
+                    elements.modelUnetUrls.value = JSON.stringify(appState.modelConfig.local.unetUrls, null, 2);
+                    elements.modelVaeUrls.value = JSON.stringify(appState.modelConfig.local.vaeUrls, null, 2);
+                    elements.modelTextEncoderUrls.value = JSON.stringify(appState.modelConfig.local.textEncoderUrls, null, 2);
+                    elements.modelTokenizerUrl.value = appState.modelConfig.local.tokenizerUrl;
+                    elements.safetyCheckerEnabled.checked = appState.modelConfig.local.safetyCheckerEnabled;
+                    elements.safetyCheckerUrls.value = JSON.stringify(appState.modelConfig.local.safetyCheckerUrls, null, 2);
+                    
+                    elements.hfApiKey.value = appState.modelConfig.cloud.apiKey;
+                    elements.hfEndpointUrl.value = appState.modelConfig.cloud.endpointUrl;
+                    
+                    elements.cacheStrategy.value = appState.settings.cacheStrategy;
+                    elements.deterministicSampling.checked = appState.settings.deterministicSampling;
+                    elements.themeSelector.value = appState.settings.theme;
+                    
+                    // Toggle safety checker config visibility
+                    elements.safetyCheckerConfig.style.display = appState.modelConfig.local.safetyCheckerEnabled ? 'block' : 'none';
+                    
+                    // Apply theme
+                    applyTheme();
+                    
+                    alert('Settings imported successfully');
+                } catch (error) {
+                    console.error('Error importing settings:', error);
+                    alert('Error importing settings: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // Download image
+        function downloadImage(item) {
+            const a = document.createElement('a');
+            a.href = item.dataUrl;
+            a.download = `image-${new Date().getTime()}.png`;
+            a.click();
+        }
+        
+        // Download JSON metadata
+        function downloadJSON(item) {
+            const blob = new Blob([JSON.stringify(item.metadata, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `metadata-${new Date().getTime()}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // Copy JSON metadata to clipboard
+        function copyJSON(item) {
+            const json = JSON.stringify(item.metadata, null, 2);
+            
+            navigator.clipboard.writeText(json)
+                .then(() => {
+                    alert('Metadata copied to clipboard');
+                })
+                .catch(err => {
+                    console.error('Error copying to clipboard:', err);
+                    alert('Error copying to clipboard. See console for details.');
+                });
+        }
+        
+        // Download HTML page
+        function downloadHTMLPage() {
+            const html = document.documentElement.outerHTML;
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-image-generator.html';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // Format bytes to human readable format
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        // Inject hidden provenance beacons
+        function injectProvenance() {
+            const beaconInterval = setInterval(() => {
+                // Check if we should flash the hidden message
+                if (Math.random() < 0.01) { // 1% chance each interval
+                    // Create an extremely brief flash message
+                    const flashElement = document.createElement('div');
+                    flashElement.style.position = 'fixed';
+                    flashElement.style.top = '50%';
+                    flashElement.style.left = '50%';
+                    flashElement.style.transform = 'translate(-50%, -50%)';
+                    flashElement.style.background = 'rgba(0, 0, 0, 0.8)';
+                    flashElement.style.color = 'white';
+                    flashElement.style.padding = '20px';
+                    flashElement.style.borderRadius = '5px';
+                    flashElement.style.zIndex = '9999';
+                    flashElement.style.opacity = '0';
+                    flashElement.style.pointerEvents = 'none';
+                    flashElement.textContent = 'This project was stolen from Ricky Foster';
+                    
+                    document.body.appendChild(flashElement);
+                    
+                    // Flash the message briefly
+                    setTimeout(() => {
+                        flashElement.style.opacity = '0.7';
+                        setTimeout(() => {
+                            flashElement.style.opacity = '0';
+                            setTimeout(() => {
+                                document.body.removeChild(flashElement);
+                            }, 50);
+                        }, 20);
+                    }, 10);
+                }
+            }, 10000); // Check every 10 seconds
+        }
+    </script>
+</body>
+</html>
